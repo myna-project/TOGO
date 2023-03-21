@@ -18,10 +18,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,16 +44,11 @@ import it.mynaproject.togo.api.domain.impl.MeasureString;
 import it.mynaproject.togo.api.exception.ConflictException;
 import it.mynaproject.togo.api.exception.GenericException;
 import it.mynaproject.togo.api.exception.NotFoundException;
-import it.mynaproject.togo.api.model.ClientJson;
 import it.mynaproject.togo.api.model.Constants;
 import it.mynaproject.togo.api.model.CsvMeasureJson;
 import it.mynaproject.togo.api.model.CsvMeasuresJson;
-import it.mynaproject.togo.api.model.Data;
-import it.mynaproject.togo.api.model.DrainJson;
-import it.mynaproject.togo.api.model.FeedJson;
 import it.mynaproject.togo.api.model.JsonUtil;
 import it.mynaproject.togo.api.model.PairDrainMeasuresJson;
-import it.mynaproject.togo.api.model.SintraJson;
 import it.mynaproject.togo.api.model.PairDrainMeasuresJson.Value;
 import it.mynaproject.togo.api.service.ClientService;
 import it.mynaproject.togo.api.service.DrainService;
@@ -706,6 +699,9 @@ public class MeasureServiceImpl implements MeasureService {
 								year = time.get(Calendar.YEAR);
 								month = time.get(Calendar.MONTH);
 								cumulMonth = (Double) value.getValue();
+								vat_perc_rate = (Double) 0.00;
+								duty_excise_1 = (Double) 0.00;
+								duty_excise_2 = (Double) 0.00;
 								List<InvoiceItemkWh> itemskWh = invoiceItemkWhDaoImpl.getInvoiceItemskWh(drainCostId, null, year, month + 1);
 								if (itemskWh.size() > 0) {
 									if (itemskWh.get(0).getDutyExcise1() != null)
@@ -713,14 +709,13 @@ public class MeasureServiceImpl implements MeasureService {
 									if (itemskWh.get(0).getDutyExcise2() != null)
 										duty_excise_2 = itemskWh.get(0).getDutyExcise2().doubleValue();
 									if (itemskWh.get(0).getVatPercRate() != null)
-									vat_perc_rate = itemskWh.get(0).getVatPercRate().doubleValue();
+										vat_perc_rate = itemskWh.get(0).getVatPercRate().doubleValue()/100;
 								}
 							}
 						}
 						Double cost = costsMap.get(value.getTime());
 						if ((value.getValue() != null) && (cost != null)) {
-							if ((cumulMonth != null) && (duty_excise_1 != null) && (duty_excise_2 != null) && (vat_perc_rate != null))
-								cost += ((cumulMonth < 200000) ? duty_excise_1 : duty_excise_2) * (1 + vat_perc_rate);
+							cost += ((cumulMonth < 200000) ? duty_excise_1 : duty_excise_2) * (1 + vat_perc_rate);
 							if (timeAggregation.equals(TimeAggregation.QHOUR)) {
 								value.setValue((Double) value.getValue() * cost);
 							} else {
@@ -846,84 +841,6 @@ public class MeasureServiceImpl implements MeasureService {
 	@Override
 	public Boolean checkMeasuresForDrain(Drain drain, Date start, Date end) {
 		return (this.measureDao.getMeasures(drain, this.getMeasureTypeFromDrain(drain), start, end).size() > 0) ? true : false;
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	@Transactional
-	public void createMeasuresFromSintraJson(SintraJson sintraMeasuresJson, String username) {
-
-		Data data = sintraMeasuresJson.getData();
-		String deviceId;
-		String measureId;
-		Date timestamp = new Date(Long.parseLong(sintraMeasuresJson.get_timestamp()));
-		Client parent = null;
-		Client device = null;
-		Measure m;
-
-		List<Measure> measures = new ArrayList<Measure>();
-		Map<String, Object> sensorData = data.getSensorData();
-		Iterator<Entry<String, Object>> it = sensorData.entrySet().iterator();
-
-		//Retrieving Parent Client
-		parent = retrieveCreateClient(sintraMeasuresJson.getDevice(), sintraMeasuresJson.getDevice(), null, username);
-
-		while (it.hasNext()) {
-			Entry<String, Object> entry = it.next();
-
-			ArrayList<Object> sensorObjs = (ArrayList<Object>) entry.getValue();
-			for (Object sensorObj : sensorObjs) {
-				Map<String, ArrayList<Object>> sensorList = (Map<String, ArrayList<Object>>) sensorObj;
-				Iterator<Entry<String, ArrayList<Object>>> innerIt = sensorList.entrySet().iterator();
-				while (innerIt.hasNext()) {
-					Entry<String, ArrayList<Object>> drainSensorMap = innerIt.next();
-
-					deviceId = drainSensorMap.getKey();
-					device = retrieveCreateClient(deviceId, deviceId, parent.getId(), username);
-
-					ArrayList<Object> drainSensorList = (ArrayList<Object>) drainSensorMap.getValue();
-					for (Object drainSensor : drainSensorList) {
-						Map<String, Object> drainMeasuresList = (Map<String, Object>) drainSensor;
-						Iterator<Entry<String, Object>> drainMeasuresListIterator = drainMeasuresList.entrySet().iterator();
-
-						while (drainMeasuresListIterator.hasNext()) {
-							Entry<String, Object> drainMeasuresEntry = drainMeasuresListIterator.next();
-							Map<String, Object> measuresMap = (Map<String, Object>) drainMeasuresEntry.getValue();
-							Iterator<Entry<String, Object>> measuresIterator = measuresMap.entrySet().iterator();
-
-							while (measuresIterator.hasNext()) {
-								Entry<String, Object> measureEntry = measuresIterator.next();
-
-								measureId = drainMeasuresEntry.getKey() + "_" + measureEntry.getKey();
-
-								Double value;
-								if (measureEntry.getValue().toString().equals("true")) {
-									value = 1.0;
-								} else if (measureEntry.getValue().toString().equals("false")) {
-									value = 0.0;
-								} else {
-									value = Double.parseDouble(measureEntry.getValue().toString());
-								}
-
-								m = this.createMeasure(username, device, measureId, value, timestamp);
-
-								measures.add(m);
-
-								measuresIterator.remove(); // avoids a ConcurrentModificationException
-							}
-
-							drainMeasuresListIterator.remove(); // avoids a ConcurrentModificationException
-						}
-					}
-
-					innerIt.remove(); // avoids a ConcurrentModificationException
-				}
-			}
-
-			it.remove(); // avoids a ConcurrentModificationException
-		}
-
-		this.persistMultiple(measures);
 	}
 
 	private List<Measure> generateMeasuresFromJson(CsvMeasuresJson csvMeasuresJson, Boolean isAdmin, Map<String, Client> checkedClients, Map<Integer, Map<String, Drain>> checkedDrains, String username) {
@@ -1142,78 +1059,6 @@ public class MeasureServiceImpl implements MeasureService {
 			throw new NotFoundException(404, "Client with deviceId = " + deviceId + " not found");
 
 		return c;
-	}
-
-	private Client retrieveCreateClient(String clientName, String deviceId, Integer parentId, String username) {
-
-		Client c = null;
-		for (Client cTmp : this.clientService.getClientsForUser(username)) {
-			if (cTmp.getName().equals(clientName)) {
-				c = cTmp;
-				break;
-			}
-		}
-
-		if (c == null) {
-			ClientJson newClient = new ClientJson();
-			newClient.setDeviceId(deviceId);
-			newClient.setName(clientName);
-			newClient.setParentId(parentId);
-			newClient.setControllerId(parentId);
-			c = this.clientService.createClientFromJson(newClient, false, username);
-		}
-
-		return c;
-	}
-
-	private Measure createMeasure(String username, Client c, String measureId, Double value, Date timestamp) {
-
-		Client tmpC = clientService.getClient(c.getId(), false, username);
-
-		Drain drain = null;
-		for (Feed f: tmpC.getFeeds()) {
-			for (Drain d : f.getDrains()) {
-				if ((d.getMeasureId() != null) && d.getName().equals(measureId)) {
-					drain = d;
-					break;
-				}
-			}
-		}
-
-		if (drain == null) {
-			Feed f = null;
-			for(Feed fTmp : tmpC.getFeeds()) {
-				if (fTmp.getDescription().equals("Not categorized")) {
-					f = fTmp;
-					break;
-				}
-			}
-			if (f == null) {
-				FeedJson newFeed = new FeedJson();
-				newFeed.setDescription("Not categorized");
-				newFeed.addClientId(c.getId());
-
-				f = this.feedService.createFeedFromInput(newFeed, false, username);
-			}
-
-			Feed tmpF = feedService.getFeed(f.getId(), false, username);
-
-			DrainJson newDrain = new DrainJson();
-			newDrain.setName(measureId);
-			newDrain.setMeasureId(measureId);
-			newDrain.setUnitOfMeasure("None");
-			newDrain.setFeedId(tmpF.getId());
-
-			drain = this.drainService.createDrainFromInput(newDrain, false, username);
-		}
-
-		// Creating measure
-		Measure<Double> m = new MeasureDouble();
-		m.setDrain(drain);
-		m.setTime(timestamp);
-		m.setValue(value);
-
-		return m;
 	}
 
 	private MeasureType getMeasureTypeFromDrain(Drain drain) {
