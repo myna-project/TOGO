@@ -219,6 +219,13 @@ public class InvoiceItemkWhServiceImpl implements InvoiceItemkWhService {
 			f2UnitCost = f2UnitCost + i.getF2UnitSafetyCosts();
 		if (i.getF3UnitSafetyCosts() != null)
 			f3UnitCost = f3UnitCost + i.getF3UnitSafetyCosts();
+		// apply loss perc rate on each time slot
+		if (i.getLossPercRate() != null) {
+			f1UnitCost = f1UnitCost + (f1UnitCost * i.getLossPercRate()/100);
+			f2UnitCost = f2UnitCost + (f2UnitCost * i.getLossPercRate()/100);
+			f3UnitCost = f3UnitCost + (f3UnitCost * i.getLossPercRate()/100);
+		}
+
 		if (i.getTransportEnergy() != null) {
 			f1UnitCost = f1UnitCost + i.getTransportEnergy();
 			f2UnitCost = f2UnitCost + i.getTransportEnergy();
@@ -233,13 +240,6 @@ public class InvoiceItemkWhServiceImpl implements InvoiceItemkWhService {
 			f1UnitCost = f1UnitCost + i.getSystemChargesEnergy();
 			f2UnitCost = f2UnitCost + i.getSystemChargesEnergy();
 			f3UnitCost = f3UnitCost + i.getSystemChargesEnergy();
-		}
-
-		// apply loss perc rate on each time slot
-		if (i.getLossPercRate() != null) {
-			f1UnitCost = f1UnitCost + (f1UnitCost * i.getLossPercRate()/100);
-			f2UnitCost = f2UnitCost + (f2UnitCost * i.getLossPercRate()/100);
-			f3UnitCost = f3UnitCost + (f3UnitCost * i.getLossPercRate()/100);
 		}
 
 		// apply vat perc rate on each time slot
