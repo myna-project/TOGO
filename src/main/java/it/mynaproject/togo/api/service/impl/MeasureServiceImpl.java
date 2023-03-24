@@ -230,7 +230,6 @@ public class MeasureServiceImpl implements MeasureService {
 		int count = 0;
 		int fCount = 1;
 		boolean unitMatch = true; // if in a formula there are two different units or more (e.g W and A) is set to false
-		boolean completeSequence = true; // if some measure is missing in a formula is set to false
 		List<Operation> multiplied = new ArrayList<Operation>();
 		List<PairDrainMeasuresJson> multipliedDrains = new ArrayList<PairDrainMeasuresJson>();
 		Operation op;
@@ -238,95 +237,38 @@ public class MeasureServiceImpl implements MeasureService {
 		// Multiplication and division are executed in a dedicated cycle before other operations
 		for (int j = 0; j < drainOperations.size() - 1; j++) {
 			op = drainOperations.get(j);
-
 			switch (op) {
 				case TIMES: {
-
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 						unitMatch = false;
 
-					List<Value> list = new ArrayList<Value>();
-					for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
-						for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-							Value m1 = jsonArray.get(count).getMeasures().get(index);
-							if (m2.getTime().equals(m1.getTime())) {
-								Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-								Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-								m2.setValue(v1 * v2);
-								jsonArray.get(count).getMeasures().remove(index);
-								list.add(m2);
-								break;
-							}
-							if (m2.getTime().compareTo(m1.getTime()) < 0) {
-								completeSequence = false;
-								break;
-							} else {
-								completeSequence = false;
-								jsonArray.get(count).getMeasures().remove(index);
-							}
-						}
-					}
-
-					jsonArray.get(count + 1).setMeasures(list);
-					jsonArray.get(count + 1).setFormula(true);
+					this.executeTimesOperation(jsonArray, count);
 					multiplied.add(drainOperations.get(count));
 					multipliedDrains.add(jsonArray.get(count));
 					break;
 				}
 				case DIVISION: {
-
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 						unitMatch = false;
 
-					List<Value> list = new ArrayList<Value>();
-					for (Value m2 : jsonArray.get(count+1).getMeasures()) {
-						for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-							Value m1 = jsonArray.get(count).getMeasures().get(index);
-							if (m2.getTime().equals(m1.getTime())) {
-								Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-								Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-								m2.setValue((v2 == 0) ? 0.00 : v1 / v2);
-								jsonArray.get(count).getMeasures().remove(index);
-								list.add(m2);
-								break;
-							}
-							if (m2.getTime().compareTo(m1.getTime()) < 0) {
-								completeSequence = false;
-								break;
-							} else {
-								completeSequence = false;
-								jsonArray.get(count).getMeasures().remove(index);
-							}
-						}
-					}
-
-					jsonArray.get(count + 1).setMeasures(list);
-					jsonArray.get(count + 1).setFormula(true);
+					this.executeDivisionOperation(jsonArray, count);
 					multiplied.add(drainOperations.get(count));
 					multipliedDrains.add(jsonArray.get(count));
-
 					break;
 				}
 				default:
 					break;
 			}
-
 			count++;
 		}
 
 		drainOperations.removeAll(multiplied);
 		jsonArray.removeAll(multipliedDrains);
 		count = 0;
-
-		// sum and subtraction loop
 		for (int j = 0; j < drainOperations.size(); j++) {
 			op = drainOperations.get(j);
-
 			if (op.equals(Operation.SEMICOLON)) {
 				PairDrainMeasuresJson newDrainList = jsonArray.get(count);
-
-				newDrainList.setCompleteSequence(completeSequence);
-				completeSequence = true;
 
 				if (newDrainList.isFormula()) {
 					newDrainList.setDrainName("Formula_" + fCount);
@@ -350,71 +292,11 @@ public class MeasureServiceImpl implements MeasureService {
 
 				jsonFinalArray.add(newDrainList);
 			} else {
-
-				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 					unitMatch = false;
 
-				if (count > 0) {
-					if (jsonArray.get(count - 1).getMeasures().size() > 0) {
-						for (int l = 0; l < jsonArray.get(count - 1).getMeasures().size(); l++) {
-							Value m0 = jsonArray.get(count - 1).getMeasures().get(l);
-							jsonArray.get(count).getMeasures().add(m0);
-							jsonArray.get(count).getMeasures().remove(l);
-						}
-					}
-				}
-				List<Value> list = new ArrayList<Value>();
-				if (jsonArray.get(count + 1).getMeasures().size() > 0) {
-					for (int k = 0; k < jsonArray.get(count + 1).getMeasures().size(); k++) {
-						Value m2 = jsonArray.get(count + 1).getMeasures().get(k);
-						if (jsonArray.get(count).getMeasures().size() > 0) {
-							for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-								Value m1 = jsonArray.get(count).getMeasures().get(index);
-								if (m2.getTime().equals(m1.getTime())) {
-									Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-									Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-									if (op.equals(Operation.PLUS))
-										m2.setValue(v1 + v2);
-									else
-										m2.setValue(v1 - v2);
-
-									jsonArray.get(count).getMeasures().remove(index);
-									list.add(m2);
-									break;
-								}
-								if (m2.getTime().compareTo(m1.getTime()) < 0) {
-									if (k == jsonArray.get(count + 1).getMeasures().size() - 1) {
-										list.add(m1);
-										jsonArray.get(count).getMeasures().remove(index);
-										completeSequence = false;
-										if (index == jsonArray.get(count).getMeasures().size())
-											break;
-									} else {
-										completeSequence = false;
-										break;
-									}
-								} else {
-									list.add(m1);
-									jsonArray.get(count).getMeasures().remove(index);
-									completeSequence = false;
-								}
-							}
-						} else {
-							list.add(m2);
-							completeSequence = false;
-						}
-					}
-				} else {
-					for (Value m2 : jsonArray.get(count).getMeasures()) {
-						list.add(m2);
-						completeSequence = false;
-					}
-				}
-
-				jsonArray.get(count + 1).setMeasures(list);
-				jsonArray.get(count + 1).setFormula(true);
+				this.executeSumSubctrationOperation(op, jsonArray, count);
 			}
-
 			count++;
 		}
 
@@ -564,7 +446,6 @@ public class MeasureServiceImpl implements MeasureService {
 		int count = 0;
 		int fCount = 1;
 		boolean unitMatch = true; // if in a formula there are two different units or more (e.g W and A) is set to false
-		boolean completeSequence = true; // if some measure is missing in a formula is set to false
 		List<Operation> multiplied = new ArrayList<Operation>();
 		List<PairDrainMeasuresJson> multipliedDrains = new ArrayList<PairDrainMeasuresJson>();
 		Operation op;
@@ -572,95 +453,38 @@ public class MeasureServiceImpl implements MeasureService {
 		// Multiplication and division are executed in a dedicated cycle before other operations
 		for (int j = 0; j < drainOperations.size() - 1; j++) {
 			op = drainOperations.get(j);
-
 			switch (op) {
 				case TIMES: {
-
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 						unitMatch = false;
 
-					List<Value> list = new ArrayList<Value>();
-					for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
-						for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-							Value m1 = jsonArray.get(count).getMeasures().get(index);
-							if (m2.getTime().equals(m1.getTime())) {
-								Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-								Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-								m2.setValue(v1 * v2);
-								jsonArray.get(count).getMeasures().remove(index);
-								list.add(m2);
-								break;
-							}
-							if (m2.getTime().compareTo(m1.getTime()) < 0) {
-								completeSequence = false;
-								break;
-							} else {
-								completeSequence = false;
-								jsonArray.get(count).getMeasures().remove(index);
-							}
-						}
-					}
-
-					jsonArray.get(count + 1).setMeasures(list);
-					jsonArray.get(count + 1).setFormula(true);
+					this.executeTimesOperation(jsonArray, count);
 					multiplied.add(drainOperations.get(count));
 					multipliedDrains.add(jsonArray.get(count));
 					break;
 				}
 				case DIVISION: {
-
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 						unitMatch = false;
 
-					List<Value> list = new ArrayList<Value>();
-					for (Value m2 : jsonArray.get(count+1).getMeasures()) {
-						for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-							Value m1 = jsonArray.get(count).getMeasures().get(index);
-							if (m2.getTime().equals(m1.getTime())) {
-								Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-								Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-								m2.setValue((v2 == 0) ? 0.00 : v1 / v2);
-								jsonArray.get(count).getMeasures().remove(index);
-								list.add(m2);
-								break;
-							}
-							if (m2.getTime().compareTo(m1.getTime()) < 0) {
-								completeSequence = false;
-								break;
-							} else {
-								completeSequence = false;
-								jsonArray.get(count).getMeasures().remove(index);
-							}
-						}
-					}
-
-					jsonArray.get(count + 1).setMeasures(list);
-					jsonArray.get(count + 1).setFormula(true);
+					this.executeDivisionOperation(jsonArray, count);
 					multiplied.add(drainOperations.get(count));
 					multipliedDrains.add(jsonArray.get(count));
-
 					break;
 				}
 				default:
 					break;
 			}
-
 			count++;
 		}
 
 		drainOperations.removeAll(multiplied);
 		jsonArray.removeAll(multipliedDrains);
 		count = 0;
-
-		// sum and subtraction loop
 		for (int j = 0; j < drainOperations.size(); j++) {
 			op = drainOperations.get(j);
-
 			if (op.equals(Operation.SEMICOLON)) {
 				PairDrainMeasuresJson newDrainList = jsonArray.get(count);
-
-				newDrainList.setCompleteSequence(completeSequence);
-				completeSequence = true;
 
 				newDrainList.setUnit("€");
 
@@ -766,70 +590,10 @@ public class MeasureServiceImpl implements MeasureService {
 
 				jsonFinalArray.add(newDrainList);
 			} else {
-
-				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count+1).getUnit()))
+				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
 					unitMatch = false;
 
-				List<Value> list = new ArrayList<Value>();
-
-				if (count > 0) {
-					if (jsonArray.get(count - 1).getMeasures().size() > 0) {
-						for (int l = 0; l < jsonArray.get(count - 1).getMeasures().size(); l++) {
-							Value m0 = jsonArray.get(count - 1).getMeasures().get(l);
-							jsonArray.get(count).getMeasures().add(m0);
-							jsonArray.get(count).getMeasures().remove(l);
-						}
-					}
-				}
-				if (jsonArray.get(count + 1).getMeasures().size() > 0) {
-					for (int k = 0; k < jsonArray.get(count + 1).getMeasures().size(); k++) {
-						Value m2 = jsonArray.get(count + 1).getMeasures().get(k);
-						if (jsonArray.get(count).getMeasures().size() > 0) {
-							for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-								Value m1 = jsonArray.get(count).getMeasures().get(index);
-								if (m2.getTime().equals(m1.getTime())) {
-									Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-									Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-									if (op.equals(Operation.PLUS))
-										m2.setValue(v1 + v2);
-									else
-										m2.setValue(v1 - v2);
-
-									jsonArray.get(count).getMeasures().remove(index);
-									list.add(m2);
-									break;
-								}
-								if (m2.getTime().compareTo(m1.getTime()) < 0) {
-									if (k == jsonArray.get(count + 1).getMeasures().size() - 1) {
-										list.add(m1);
-										jsonArray.get(count).getMeasures().remove(index);
-										completeSequence = false;
-										if (index == jsonArray.get(count).getMeasures().size())
-											break;
-									} else {
-										completeSequence = false;
-										break;
-									}
-								} else {
-									list.add(m1);
-									jsonArray.get(count).getMeasures().remove(index);
-									completeSequence = false;
-								}
-							}
-						} else {
-							list.add(m2);
-							completeSequence = false;
-						}
-					}
-				} else {
-					for (Value m2 : jsonArray.get(count).getMeasures()) {
-						list.add(m2);
-						completeSequence = false;
-					}
-				}
-
-				jsonArray.get(count + 1).setMeasures(list);
-				jsonArray.get(count + 1).setFormula(true);
+				this.executeSumSubctrationOperation(op, jsonArray, count);
 			}
 
 			count++;
@@ -1135,5 +899,108 @@ public class MeasureServiceImpl implements MeasureService {
 				}
 			}
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void executeSumSubctrationOperation(Operation op, List<PairDrainMeasuresJson> jsonArray, int count) {
+
+		List<Value> list = new ArrayList<Value>();
+		if (jsonArray.get(count + 1).getMeasures().size() > 0) {
+			for (int k = 0; k < jsonArray.get(count + 1).getMeasures().size(); k++) {
+				Value m2 = jsonArray.get(count + 1).getMeasures().get(k);
+				if (jsonArray.get(count).getMeasures().size() > 0) {
+					for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
+						Value m1 = jsonArray.get(count).getMeasures().get(index);
+						if (m2.getTime().equals(m1.getTime())) {
+							Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
+							Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
+							if (op.equals(Operation.PLUS))
+								m2.setValue(v1 + v2);
+							else
+								m2.setValue(v1 - v2);
+
+							list.add(m2);
+							jsonArray.get(count).getMeasures().remove(index);
+							break;
+						} else if (m2.getTime().compareTo(m1.getTime()) < 0) {
+							if (k == jsonArray.get(count + 1).getMeasures().size() - 1) {
+								list.add(m1);
+								jsonArray.get(count).getMeasures().remove(index);
+								if (index == jsonArray.get(count).getMeasures().size())
+									break;
+							} else {
+								list.add(m2);
+								break;
+							}
+						} else {
+							list.add(m1);
+							jsonArray.get(count).getMeasures().remove(index);
+						}
+					}
+				} else {
+					list.add(m2);
+				}
+			}
+			if (jsonArray.get(count).getMeasures().size() > 0)
+				list.addAll(jsonArray.get(count).getMeasures());
+		} else {
+			for (Value m2 : jsonArray.get(count).getMeasures())
+				list.add(m2);
+		}
+
+		jsonArray.get(count + 1).setMeasures(list);
+		jsonArray.get(count + 1).setFormula(true);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void executeTimesOperation(List<PairDrainMeasuresJson> jsonArray, int count) {
+
+		List<Value> list = new ArrayList<Value>();
+		for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
+			for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
+				Value m1 = jsonArray.get(count).getMeasures().get(index);
+				if (m2.getTime().equals(m1.getTime())) {
+					Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
+					Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
+					m2.setValue(v1 * v2);
+					jsonArray.get(count).getMeasures().remove(index);
+					list.add(m2);
+					break;
+				} else if (m2.getTime().compareTo(m1.getTime()) < 0) {
+					break;
+				} else {
+					jsonArray.get(count).getMeasures().remove(index);
+				}
+			}
+		}
+
+		jsonArray.get(count + 1).setMeasures(list);
+		jsonArray.get(count + 1).setFormula(true);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void executeDivisionOperation(List<PairDrainMeasuresJson> jsonArray, int count) {
+
+		List<Value> list = new ArrayList<Value>();
+		for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
+			for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
+				Value m1 = jsonArray.get(count).getMeasures().get(index);
+				if (m2.getTime().equals(m1.getTime())) {
+					Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
+					Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
+					m2.setValue((v2 == 0) ? 0.00 : v1 / v2);
+					jsonArray.get(count).getMeasures().remove(index);
+					list.add(m2);
+					break;
+				} else if (m2.getTime().compareTo(m1.getTime()) < 0) {
+					break;
+				} else {
+					jsonArray.get(count).getMeasures().remove(index);
+				}
+			}
+		}
+
+		jsonArray.get(count + 1).setMeasures(list);
+		jsonArray.get(count + 1).setFormula(true);
 	}
 }

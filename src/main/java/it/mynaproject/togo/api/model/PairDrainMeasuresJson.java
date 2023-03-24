@@ -36,9 +36,6 @@ public class PairDrainMeasuresJson {
 	@JsonProperty("measure_type")
 	private String measureType = null;
 
-	@JsonProperty("complete_sequence")
-	private boolean completeSequence;
-
 	private boolean formula;
 
 	@JsonProperty("query_param")
@@ -112,14 +109,6 @@ public class PairDrainMeasuresJson {
 
 	public List<Value> getMeasures() {
 		return measures;
-	}
-
-	public boolean isCompleteSequence() {
-		return completeSequence;
-	}
-
-	public void setCompleteSequence(boolean completeSequence) {
-		this.completeSequence = completeSequence;
 	}
 
 	public boolean isFormula() {
