@@ -189,7 +189,7 @@ public class DashboardWidgetServiceImpl implements DashboardWidgetService {
 		for (DashboardWidgetDetailJson dj : input.getDetails()) {
 			if ((dj.getIndexId() != null) || (dj.getDrainId() != null) || (dj.getFormulaId() != null) || (dj.getDrainControlId() != null)) {
 				DashboardWidgetDetail detail = new DashboardWidgetDetail();
-				detail.populateDashboardWidgetDetailFromInput(dj, (dj.getDrainId() != null) ? this.drainService.getDrain(dj.getDrainId(), isAdmin, username) : null, (dj.getFormulaId() != null) ? this.formulaService.getFormula(dj.getFormulaId(), isAdmin, username) : null, (dj.getIndexId() != null) ? this.indexService.getIndex(dj.getIndexId(), false, null, null, isAdmin, username) : null, (dj.getDrainControlId() != null) ? this.drainControlService.getDrainControl(dj.getDrainControlId(), isAdmin, username) : null);
+				detail.populateDashboardWidgetDetailFromInput(dj, (dj.getDrainId() != null) ? this.drainService.getDrain(dj.getDrainId(), isAdmin, username) : null, (dj.getFormulaId() != null) ? this.formulaService.getFormula(dj.getFormulaId(), isAdmin, username) : null, (dj.getIndexId() != null) ? this.indexService.getIndex(dj.getIndexId(), null, null, null, isAdmin, username) : null, (dj.getDrainControlId() != null) ? this.drainControlService.getDrainControl(dj.getDrainControlId(), isAdmin, username) : null);
 				detail.setDashboardWidget(widget);
 				this.dashboardWidgetDetailDao.persist(detail);
 				details.add(detail);

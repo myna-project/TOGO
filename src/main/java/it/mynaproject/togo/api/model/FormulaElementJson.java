@@ -10,8 +10,6 @@
  ******************************************************************************/
 package it.mynaproject.togo.api.model;
 
-import java.util.Date;
-
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -33,17 +31,11 @@ public class FormulaElementJson {
 	@JsonProperty("formula_name")
 	String formulaName;
 
-	@JsonProperty("start_date")
-	Date startDate;
+	@JsonProperty("n_skip")
+	Integer nSkip;
 
-	@JsonProperty("end_date")
-	Date endDate;
-
-	@JsonProperty("relative_time")
-	Integer relativeTime;
-
-	@JsonProperty("relative_period")
-	IndexRelativePeriod relativePeriod;
+	@JsonProperty("skip_period")
+	IndexRelativePeriod skipPeriod;
 
 	public Integer getFormulaId() {
 		return formulaId;
@@ -61,35 +53,19 @@ public class FormulaElementJson {
 		this.formulaName = formulaName;
 	}
 
-	public Date getStartDate() {
-		return startDate;
+	public Integer getNSkip() {
+		return nSkip;
 	}
 
-	public void setStartDate(Date startDate) {
-		this.startDate = startDate;
+	public void setNSkip(Integer nSkip) {
+		this.nSkip = nSkip;
 	}
 
-	public Date getEndDate() {
-		return endDate;
+	public IndexRelativePeriod getSkipPeriod() {
+		return skipPeriod;
 	}
 
-	public void setEndDate(Date endDate) {
-		this.endDate = endDate;
-	}
-
-	public Integer getRelativeTime() {
-		return relativeTime;
-	}
-
-	public void setRelativeTime(Integer relativeTime) {
-		this.relativeTime = relativeTime;
-	}
-
-	public IndexRelativePeriod getRelativePeriod() {
-		return relativePeriod;
-	}
-
-	public void setRelativePeriod(IndexRelativePeriod relativePeriod) {
-		this.relativePeriod = relativePeriod;
+	public void setSkipPeriod(IndexRelativePeriod skipPeriod) {
+		this.skipPeriod = skipPeriod;
 	}
 }

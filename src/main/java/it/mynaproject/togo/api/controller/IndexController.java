@@ -67,7 +67,7 @@ public class IndexController {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return JsonUtil.indexToIndexJson(this.indexService.getIndex(id, false, null, null, true, user.getUsername()));
+		return JsonUtil.indexToIndexJson(this.indexService.getIndex(id, null, null, null, true, user.getUsername()));
 	}
 
 	@ApiResponses({
@@ -129,30 +129,14 @@ public class IndexController {
 	@GetMapping(value = "/admin/organization/index/{id}/calculate")
 	public Object calculateIndex(
 			@PathVariable("id") Integer id,
-			@RequestParam(value="start", required=false) @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
-			@RequestParam(value="end", required=false) @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end
+			@RequestParam(value="start") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
+			@RequestParam(value="end") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
+			@RequestParam(value="timeAggregation") TimeAggregation timeAggregation
 			) {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return JsonUtil.indexToIndexJson(indexService.getIndex(id, true, start, end, true, user.getUsername()));
-	}
-
-	@ApiResponses({
-		@ApiResponse(code = 400, message = "Bad Request")
-	})
-	@GetMapping(value = "/admin/organization/index/{id}/calculatelast")
-	public Object calculateLastIndex(
-			@PathVariable("id") Integer id,
-			@RequestParam(value="timeAggregation") TimeAggregation timeAggregation,
-			@RequestParam(value="nTimes") Integer nTimes
-			) {
-
-		log.debug("Calculate last {} {} for index with id {}", nTimes, timeAggregation, id);
-
-		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-		return JsonUtil.indexToIndexJson(indexService.calculateLastIndex(id, timeAggregation, nTimes, true, user.getUsername()));
+		return JsonUtil.indexToIndexJson(indexService.getIndex(id, start, end, timeAggregation, true, user.getUsername()));
 	}
 
 	/*
@@ -171,7 +155,7 @@ public class IndexController {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return JsonUtil.indexToIndexJson(this.indexService.getIndex(id, true, null, null, false, user.getUsername()));
+		return JsonUtil.indexToIndexJson(this.indexService.getIndex(id, null, null, null, false, user.getUsername()));
 	}
 
 	@ApiResponses({
@@ -234,28 +218,12 @@ public class IndexController {
 	public Object calculateIndexForUser(
 			@PathVariable("id") Integer id,
 			@RequestParam(value="start", required=false) @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
-			@RequestParam(value="end", required=false) @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end
+			@RequestParam(value="end", required=false) @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
+			@RequestParam(value="timeAggregation") TimeAggregation timeAggregation
 			) {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return JsonUtil.indexToIndexJson(indexService.getIndex(id, true, start, end, false, user.getUsername()));
-	}
-
-	@ApiResponses({
-		@ApiResponse(code = 400, message = "Bad Request")
-	})
-	@GetMapping(value = "/organization/index/{id}/calculatelast")
-	public Object calculateLastIndexForUser(
-			@PathVariable("id") Integer id,
-			@RequestParam(value="timeAggregation") TimeAggregation timeAggregation,
-			@RequestParam(value="nTimes") Integer nTimes
-			) {
-
-		log.debug("Calculate last {} {} for index with id {}", nTimes, timeAggregation, id);
-
-		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-		return JsonUtil.indexToIndexJson(indexService.calculateLastIndex(id, timeAggregation, nTimes, false, user.getUsername()));
+		return JsonUtil.indexToIndexJson(indexService.getIndex(id, start, end, timeAggregation, false, user.getUsername()));
 	}
 }

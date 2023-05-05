@@ -10,6 +10,8 @@
  ******************************************************************************/
 package it.mynaproject.togo.api.service.impl;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -36,9 +38,11 @@ import it.mynaproject.togo.api.domain.impl.MeasureDouble;
 import it.mynaproject.togo.api.exception.ConflictException;
 import it.mynaproject.togo.api.exception.GenericException;
 import it.mynaproject.togo.api.exception.NotFoundException;
+import it.mynaproject.togo.api.model.Constants;
 import it.mynaproject.togo.api.model.FormulaElementJson;
 import it.mynaproject.togo.api.model.IndexJson;
 import it.mynaproject.togo.api.model.PairDrainMeasuresJson;
+import it.mynaproject.togo.api.model.PairDrainMeasuresJson.Value;
 import it.mynaproject.togo.api.service.FormulaService;
 import it.mynaproject.togo.api.service.IndexGroupService;
 import it.mynaproject.togo.api.service.IndexService;
@@ -67,22 +71,14 @@ public class IndexServiceImpl implements IndexService {
 
 	@Override
 	@Transactional
-	public Index getIndex(Integer id, Boolean calculate, Date start, Date end, Boolean isAdmin, String username) {
+	public Index getIndex(Integer id, Date start, Date end, TimeAggregation timeAggregation, Boolean isAdmin, String username) {
 
 		Index index = this.indexDao.getIndex(id);
 		if ((index == null) || (index.getOrg() == null) || (!isAdmin && !this.orgService.orgIsVisibleByUser(index.getOrg(), username)))
 			throw new NotFoundException(404, "Index " + id + " not found");
 
-		if (calculate) {
-			List<Measure> results = new ArrayList<Measure>();
-
-			MeasureDouble m = new MeasureDouble();
-			m.setTime(start);
-			m.setValue(this.getIndexResult(index, start, end, isAdmin, username));
-			results.add(m);
-
-			index.setResult(results);
-		}
+		if ((start != null) && (end != null) && (timeAggregation != null))
+			index.setResult(this.getIndexResults(index, start, end, timeAggregation, isAdmin, username));
 
 		return index;
 	}
@@ -141,7 +137,7 @@ public class IndexServiceImpl implements IndexService {
 		Org org = this.orgService.getOrg(input.getOrgId(), isAdmin, username);
 		IndexGroup group = (input.getGroup() != null) ? this.indexGroupService.getIndexGroup(input.getGroup().getId(), isAdmin, username) : null;
 
-		Index f = this.getIndex(id, false, null, null, isAdmin, username);
+		Index f = this.getIndex(id, null, null, null, isAdmin, username);
 
 		if (!this.checkNameForIndexForOrg(input.getName(), id, org, isAdmin, username))
 			throw new ConflictException(12003, "Index name " + input.getName() + " not available for this org");
@@ -162,270 +158,177 @@ public class IndexServiceImpl implements IndexService {
 
 		log.info("Deleting index with id {}", id);
 
-		this.indexDao.delete(this.getIndex(id, false, null, null, isAdmin, username));
-	}
-
-	@Override
-	@Transactional
-	public Index calculateLastIndex(Integer id, TimeAggregation timeAggregation, Integer nTimes, Boolean isAdmin, String username) {
-
-		if (!timeAggregation.equals(TimeAggregation.YEAR) && !timeAggregation.equals(TimeAggregation.MONTH) && !timeAggregation.equals(TimeAggregation.DAY) && !timeAggregation.equals(TimeAggregation.HOUR) && !timeAggregation.equals(TimeAggregation.QHOUR) && !timeAggregation.equals(TimeAggregation.MINUTE))
-			throw new GenericException(12008, "Time aggregation not available for index calculation, choose between YEAR, MONTH, DAY, QHOUR, HOUR or MINUTE");
-
-		Index index = this.getIndex(id, false, null, null, isAdmin, username);
-
-		Calendar end_time = Calendar.getInstance();
-		Calendar start_time = Calendar.getInstance();
-		start_time.set(Calendar.SECOND, 0);
-		start_time.set(Calendar.MILLISECOND, 0);
-		switch (timeAggregation) {
-		case YEAR:
-			start_time.set(Calendar.MINUTE, 0);
-			start_time.set(Calendar.HOUR_OF_DAY, 0);
-			start_time.set(Calendar.DAY_OF_MONTH, 1);
-			start_time.set(Calendar.MONTH, 0);
-			break;
-		case MONTH:
-			start_time.set(Calendar.MINUTE, 0);
-			start_time.set(Calendar.HOUR_OF_DAY, 0);
-			start_time.set(Calendar.DAY_OF_MONTH, 1);
-			break;
-		case DAY:
-			start_time.set(Calendar.MINUTE, 0);
-			start_time.set(Calendar.HOUR_OF_DAY, 0);
-			break;
-		case HOUR:
-			start_time.set(Calendar.MINUTE, 0);
-			break;
-		case QHOUR:
-			start_time.set(Calendar.MINUTE, (start_time.get(Calendar.MINUTE) % 15) * 15);
-			break;
-		default:
-			break;
-		}
-
-		List<Measure> results = new ArrayList<Measure>();
-		for (int i = nTimes; i > 0; i--) {
-			MeasureDouble m = new MeasureDouble();
-			m.setTime(start_time.getTime());
-			m.setValue(this.getIndexResult(index, start_time.getTime(), end_time.getTime(), isAdmin, username));
-			results.add(m);
-
-			end_time = (Calendar) start_time.clone();
-			end_time.add(Calendar.SECOND, -1);
-			switch (timeAggregation) {
-			case YEAR:
-				start_time.add(Calendar.YEAR, -1);
-				break;
-			case MONTH:
-				start_time.add(Calendar.MONTH, -1);
-				break;
-			case DAY:
-				start_time.add(Calendar.DAY_OF_MONTH, -1);
-				break;
-			case HOUR:
-				start_time.add(Calendar.HOUR, -1);
-				break;
-			case QHOUR:
-				start_time.add(Calendar.MINUTE, -15);
-				break;
-			case MINUTE:
-				start_time.add(Calendar.MINUTE, -1);
-				break;
-			default:
-				break;
-			}			
-		}
-
-		index.setResult(results);
-
-		return index;
+		this.indexDao.delete(this.getIndex(id, null, null, null, isAdmin, username));
 	}
 
 	private List<IndexComponent> populateIndexComponentFromInput(Index index, IndexJson input, Boolean isAdmin, String username) {
 
 		List<IndexComponent> comps = new ArrayList<IndexComponent>();
-		// Single component case
-		if (input.getFormulaElements().size() == 1) {
-			IndexComponent newComp = this.setComponentTime(input.getFormulaElements().get(0));
-			newComp.setFormula(formulaService.getFormula(input.getFormulaElements().get(0).getFormulaId(), isAdmin, username));
-			newComp.setOperator(Operation.SEMICOLON);
+
+		Integer i = 0;
+		for (FormulaElementJson fe : input.getFormulaElements()) {
+			i++;
+
+			IndexComponent newComp = new IndexComponent();
+			newComp.setFormula(formulaService.getFormula(fe.getFormulaId(), isAdmin, username));
+			newComp.setNSkip(fe.getNSkip());
+			newComp.setSkipPeriod(fe.getSkipPeriod());
+			newComp.setOperator((i == input.getOperators().size()) ? Operation.SEMICOLON : input.getOperators().get(i - 1));
 			newComp.setIndex(index);
 
 			comps.add(newComp);
-		} else {
-			Integer i = 0;
-
-			for (FormulaElementJson fe : input.getFormulaElements()) {
-				IndexComponent newComp = this.setComponentTime(fe);
-				newComp.setFormula(formulaService.getFormula(input.getFormulaElements().get(i).getFormulaId(), isAdmin, username));
-				newComp.setOperator(input.getOperators().get(i));
-				newComp.setIndex(index);
-
-				comps.add(newComp);
-
-				i++;
-
-				if (i == (input.getOperators().size() - 1)) {
-					// last component
-					IndexComponent lastComp = this.setComponentTime(input.getFormulaElements().get(i));
-					lastComp.setFormula(formulaService.getFormula(input.getFormulaElements().get(i).getFormulaId(), isAdmin, username));
-					lastComp.setOperator(Operation.SEMICOLON);
-					lastComp.setIndex(index);
-
-					comps.add(lastComp);
-
-					break;
-				}
-			}
 		}
 
 		return comps;
 	}
 
-	private IndexComponent setComponentTime(FormulaElementJson fe) {
-
-		IndexComponent c = new IndexComponent();
-
-		if ((fe.getStartDate() != null) && (fe.getEndDate() != null)) {
-			c.setStartTime(fe.getStartDate());
-			c.setEndTime(fe.getEndDate());
-		} else if ((fe.getRelativeTime() != null) && (fe.getRelativePeriod() != null)) {
-			c.setRelativeTime(fe.getRelativeTime());
-			c.setRelativePeriod(fe.getRelativePeriod());
-		} else {
-			throw new GenericException(12004, "Missing time constraints for the requested index");
-		}
-
-		return c;
-	}
-
-	private Double getIndexResult(Index index, Date start, Date end, Boolean isAdmin, String username) {
-
-		List<IndexComponent> ics = index.getComponents();
-
-		Date start_time = start;
-		Date end_time = end;
-		if (start == null || end == null) {
-			List<Date> timesList = this.getIndexTimes(ics.get(0));
-			start_time = timesList.get(0);
-			end_time = timesList.get(1);
-		}
+	@SuppressWarnings("unchecked")
+	private List<Measure> getIndexResults(Index index, Date start_time, Date end_time, TimeAggregation aggregation, Boolean isAdmin, String username) {
 
 		if ((start_time == null) || (end_time == null))
 			throw new GenericException(12007, "No times setted for index" + index.getId() + ".");
+		if (aggregation == null)
+			aggregation = TimeAggregation.ALL;
 
-		// Create a partial result with the first element
-		Double result = this.getIndexComponentResult(ics.get(0), start_time, end_time, isAdmin, username);
+		ArrayList<ArrayList<Measure>> comps = new ArrayList<ArrayList<Measure>>(index.getComponents().size());
+		for (IndexComponent ic : index.getComponents()) {
+			ArrayList<Measure> comp = new ArrayList<Measure>();
+			ArrayList<Operation> drainOperations = new ArrayList<Operation>();
+			ArrayList<MeasureAggregation> measureAggregations = new ArrayList<MeasureAggregation>();
+			Formula f = ic.getFormula();
+			String[] drainIds = new String[f.getComponents().size()];
 
-		if (ics.size() > 1) {
-			for (int i = 0; i < ics.size()-1; i++) {
-				if (start == null || end == null) {
-					List<Date> timesList = this.getIndexTimes(ics.get(i + 1));
-					start_time = timesList.get(0);
-					end_time = timesList.get(1);
+			int i = 0;
+			for (FormulaComponent fc : f.getComponents()) {
+				drainOperations.add(fc.getOperator());
+				measureAggregations.add(fc.getAggregation());
+				drainIds[i] = String.valueOf(fc.getDrain().getId());
+				i++;
+			}
+			if ((ic.getNSkip() != null) && (ic.getSkipPeriod() != null)) {
+				Calendar startCal = Calendar.getInstance();
+				startCal.setTime(start_time);
+				Calendar endCal = Calendar.getInstance();
+				endCal.setTime(end_time);
+
+				switch (ic.getSkipPeriod()) {
+				case y:
+					startCal.add(Calendar.YEAR, ic.getNSkip() * -1);
+					endCal.add(Calendar.YEAR, ic.getNSkip() * -1);
+					break;
+				case M:
+					startCal.add(Calendar.MONTH, ic.getNSkip() * -1);
+					endCal.add(Calendar.MONTH, ic.getNSkip() * -1);
+					break;
+				case d:
+					startCal.add(Calendar.DAY_OF_MONTH, ic.getNSkip() * -1);
+					endCal.add(Calendar.DAY_OF_MONTH, ic.getNSkip() * -1);
+					break;
+				case h:
+					startCal.add(Calendar.HOUR, ic.getNSkip() * -1);
+					endCal.add(Calendar.HOUR, ic.getNSkip() * -1);
+					break;
+				case m:
+					startCal.add(Calendar.MINUTE, ic.getNSkip() * -1);
+					endCal.add(Calendar.MINUTE, ic.getNSkip() * -1);
+					break;
+				default:
+					break;
 				}
-				Double res = this.getIndexComponentResult(ics.get(i + 1), start_time, end_time, isAdmin, username);
-				if (res != null) {
-					Operation operator = ics.get(i).getOperator();
-					switch (operator) {
+				
+				start_time = startCal.getTime();
+				end_time = endCal.getTime();
+			}
+
+			List<PairDrainMeasuresJson> measuresJson = this.measureService.getMeasures(drainIds, drainOperations, measureAggregations, start_time, end_time, aggregation, isAdmin, username);
+			if (measuresJson.size() > 1)
+				throw new GenericException(12007, "Not unique result for a formula element. Please control sintax and time constraints of formula " + ic.getFormula().getId() + " (" + ic.getFormula().getName() + ")");
+
+			for (PairDrainMeasuresJson mj : measuresJson) {
+				for (Value value : mj.getMeasures()) {
+					try {
+						Calendar cal = Calendar.getInstance();
+						cal.setTime(new SimpleDateFormat(Constants.DATIME_FORMAT).parse(value.getTime()));
+						if ((ic.getNSkip() != null) && (ic.getSkipPeriod() != null)) {
+							switch (ic.getSkipPeriod()) {
+							case y:
+								cal.add(Calendar.YEAR, ic.getNSkip() * 1);
+								break;
+							case M:
+								cal.add(Calendar.MONTH, ic.getNSkip() * 1);
+								break;
+							case d:
+								cal.add(Calendar.DAY_OF_MONTH, ic.getNSkip() * 1);
+								break;
+							case h:
+								cal.add(Calendar.HOUR, ic.getNSkip() * 1);
+								break;
+							case m:
+								cal.add(Calendar.MINUTE, ic.getNSkip() * 1);
+								break;
+							default:
+								break;
+							}
+
+						}
+						MeasureDouble m = new MeasureDouble();
+						m.setTime(cal.getTime());
+						m.setValue((Double) value.getValue());
+						comp.add(m);
+					} catch (ParseException e) {
+						throw new GenericException(500, "Cannot transform time " + value.getTime());
+					}
+				}
+			}
+			comps.add(comp);
+		}
+
+		if (comps.size() > 1)
+			for (int i = 0; i < (comps.size() - 1); i++)
+				this.executeOperation(index.getComponents().get(i).getOperator(), comps, i);
+		
+		if (index.getCoefficient() != null)
+			for (Measure m : comps.get(comps.size() - 1))
+				m.setValue(((Double) m.getValue()) * index.getCoefficient().doubleValue());
+
+		return comps.get(comps.size() - 1);
+	}
+
+	@SuppressWarnings("unchecked")
+	private void executeOperation(Operation op, ArrayList<ArrayList<Measure>> comps, int i) {
+
+		List<Measure> list = new ArrayList<Measure>();
+		for (Measure m2 : comps.get(i + 1)) {
+			for (int j = 0; j < comps.get(i).size();) {
+				Measure m1 = comps.get(i).get(j);
+				if (m2.getTime().equals(m1.getTime())) {
+					Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
+					Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
+					switch (op) {
 					case TIMES:
-						result *= res;
+						m2.setValue(v1 * v2);
 						break;
 					case DIVISION:
-						if (!res.equals(0.00))
-							result = result/res;
-						else
-							result = 0.00;
+						m2.setValue((v2.equals(0.00)) ? 0.00 : v1 / v2);
 						break;
 					case PERCENTAGE:
-						if (!res.equals(0.00))
-							result = result/res * 100;
-						else
-							result = 0.00;
+						m2.setValue((v2.equals(0.00)) ? 0.00 : v1 / v2 * 100);
 						break;
 					default:
 						throw new GenericException(12002, "Unrecognized operator in formula. Please use: *, / or %.");
 					}
+					comps.get(i).remove(j);
+					list.add(m2);
+					break;
+				} else if (m2.getTime().compareTo(m1.getTime()) < 0) {
+					break;
+				} else {
+					comps.get(i).remove(j);
 				}
 			}
 		}
-
-		return result;
-	}
-
-	private Double getIndexComponentResult(IndexComponent ic, Date start, Date end, Boolean isAdmin, String username) {
-
-		ArrayList<Operation> drainOperations = new ArrayList<Operation>();
-		ArrayList<MeasureAggregation> measureAggregations = new ArrayList<MeasureAggregation>();
-		Formula f = ic.getFormula();
-		String[] drainIds = new String[f.getComponents().size()];
-		TimeAggregation aggregation = TimeAggregation.ALL;
-
-		int i = 0;
-		for (FormulaComponent fc : f.getComponents()) {
-			drainOperations.add(fc.getOperator());
-			measureAggregations.add(fc.getAggregation());
-			drainIds[i] = String.valueOf(fc.getDrain().getId());
-			i++;
-		}
-
-		List<PairDrainMeasuresJson> measureJson = this.measureService.getMeasures(drainIds, drainOperations, measureAggregations, start, end, aggregation, isAdmin, username);
-		if ((measureJson.get(0).getMeasures().size() > 1) || (measureJson.size() > 1)) {
-			throw new GenericException(12007, "Not unique result for a formula element. Please control sintax and time constraints of formula " + ic.getFormula().getId() + " (" + ic.getFormula().getName() + ")");
-		} else if (measureJson.isEmpty() || measureJson.get(0).getMeasures().isEmpty()) {
-			return (Double) 0.00;
-		} else {
-			return (Double) measureJson.get(0).getMeasures().get(0).getValue();
-		}
-	}
-
-	private List<Date> getIndexTimes(IndexComponent ic) {
-
-		Date start_time = null;
-		Date end_time = null;
-
-		if ((ic.getStartTime() != null) && (ic.getEndTime() != null)) {
-			start_time = ic.getStartTime();
-			end_time = ic.getEndTime();
-		} else if ((ic.getRelativePeriod() != null) && (ic.getRelativeTime() != null)) {
-			end_time = new Date();
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(end_time);
-
-			switch (ic.getRelativePeriod()) {
-			case m:
-				cal.add(Calendar.MINUTE, -ic.getRelativeTime());
-				start_time = cal.getTime();
-				break;
-			case h:
-				cal.add(Calendar.HOUR_OF_DAY, -ic.getRelativeTime());
-				start_time = cal.getTime();
-				break;
-			case d:
-				cal.add(Calendar.DATE, -ic.getRelativeTime());
-				start_time = cal.getTime();
-				break;
-			case M:
-				cal.add(Calendar.MONTH, -ic.getRelativeTime());
-				start_time = cal.getTime();
-				break;
-			case y:
-				cal.add(Calendar.YEAR, -ic.getRelativeTime());
-				start_time = cal.getTime();
-				break;
-			default:
-				throw new GenericException(12005, "Unexpected relative time format in Index.");
-			}
-		} else {
-			throw new GenericException(12006, "Unexpected time format in Index.");
-		}
-
-		List<Date> timesList = new ArrayList<Date>();
-		timesList.add(start_time);
-		timesList.add(end_time);
-
-		return timesList;
+		comps.get(i + 1).clear();
+		comps.get(i + 1).addAll(list);
 	}
 
 	private boolean checkNameForIndexForOrg(String name, Integer indexId, Org org, Boolean isAdmin, String username) {

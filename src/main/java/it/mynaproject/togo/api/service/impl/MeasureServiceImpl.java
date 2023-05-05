@@ -237,27 +237,13 @@ public class MeasureServiceImpl implements MeasureService {
 		// Multiplication and division are executed in a dedicated cycle before other operations
 		for (int j = 0; j < drainOperations.size() - 1; j++) {
 			op = drainOperations.get(j);
-			switch (op) {
-				case TIMES: {
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
-						unitMatch = false;
+			if (op.equals(Operation.TIMES) || op.equals(Operation.DIVISION)) {
+				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
+					unitMatch = false;
 
-					this.executeTimesOperation(jsonArray, count);
-					multiplied.add(drainOperations.get(count));
-					multipliedDrains.add(jsonArray.get(count));
-					break;
-				}
-				case DIVISION: {
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
-						unitMatch = false;
-
-					this.executeDivisionOperation(jsonArray, count);
-					multiplied.add(drainOperations.get(count));
-					multipliedDrains.add(jsonArray.get(count));
-					break;
-				}
-				default:
-					break;
+				this.executeTimesDivisionOperations(op, jsonArray, count);
+				multiplied.add(drainOperations.get(count));
+				multipliedDrains.add(jsonArray.get(count));
 			}
 			count++;
 		}
@@ -411,7 +397,7 @@ public class MeasureServiceImpl implements MeasureService {
 		for (String costDrain : costs.keySet()) {
 			for (Measure m : costs.get(costDrain)) {
 				if (m.getTime().compareTo(start_date) >= 0)
-						costsMap.put(DateUtil.formatDateString(m.getTime(), Constants.DATIME_FORMAT), Double.valueOf(m.getValue().toString()));
+					costsMap.put(DateUtil.formatDateString(m.getTime(), Constants.DATIME_FORMAT), Double.valueOf(m.getValue().toString()));
 				if (timeAggregation.equals(TimeAggregation.QHOUR)) {
 					Calendar qhour = Calendar.getInstance();
 					qhour.setTime(m.getTime());
@@ -453,27 +439,13 @@ public class MeasureServiceImpl implements MeasureService {
 		// Multiplication and division are executed in a dedicated cycle before other operations
 		for (int j = 0; j < drainOperations.size() - 1; j++) {
 			op = drainOperations.get(j);
-			switch (op) {
-				case TIMES: {
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
-						unitMatch = false;
+			if (op.equals(Operation.TIMES) || op.equals(Operation.DIVISION)) {
+				if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
+					unitMatch = false;
 
-					this.executeTimesOperation(jsonArray, count);
-					multiplied.add(drainOperations.get(count));
-					multipliedDrains.add(jsonArray.get(count));
-					break;
-				}
-				case DIVISION: {
-					if (unitMatch && !jsonArray.get(count).getUnit().equals(jsonArray.get(count + 1).getUnit()))
-						unitMatch = false;
-
-					this.executeDivisionOperation(jsonArray, count);
-					multiplied.add(drainOperations.get(count));
-					multipliedDrains.add(jsonArray.get(count));
-					break;
-				}
-				default:
-					break;
+				this.executeTimesDivisionOperations(op, jsonArray, count);
+				multiplied.add(drainOperations.get(count));
+				multipliedDrains.add(jsonArray.get(count));
 			}
 			count++;
 		}
@@ -953,7 +925,7 @@ public class MeasureServiceImpl implements MeasureService {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void executeTimesOperation(List<PairDrainMeasuresJson> jsonArray, int count) {
+	private void executeTimesDivisionOperations(Operation op, List<PairDrainMeasuresJson> jsonArray, int count) {
 
 		List<Value> list = new ArrayList<Value>();
 		for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
@@ -962,33 +934,7 @@ public class MeasureServiceImpl implements MeasureService {
 				if (m2.getTime().equals(m1.getTime())) {
 					Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
 					Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-					m2.setValue(v1 * v2);
-					jsonArray.get(count).getMeasures().remove(index);
-					list.add(m2);
-					break;
-				} else if (m2.getTime().compareTo(m1.getTime()) < 0) {
-					break;
-				} else {
-					jsonArray.get(count).getMeasures().remove(index);
-				}
-			}
-		}
-
-		jsonArray.get(count + 1).setMeasures(list);
-		jsonArray.get(count + 1).setFormula(true);
-	}
-	
-	@SuppressWarnings("unchecked")
-	private void executeDivisionOperation(List<PairDrainMeasuresJson> jsonArray, int count) {
-
-		List<Value> list = new ArrayList<Value>();
-		for (Value m2 : jsonArray.get(count + 1).getMeasures()) {
-			for (int index = 0; index < jsonArray.get(count).getMeasures().size();) {
-				Value m1 = jsonArray.get(count).getMeasures().get(index);
-				if (m2.getTime().equals(m1.getTime())) {
-					Double v1 = (m1.getValue() != null) ? Double.valueOf(m1.getValue().toString()) : 0;
-					Double v2 = (m2.getValue() != null) ? Double.valueOf(m2.getValue().toString()) : 0;
-					m2.setValue((v2 == 0) ? 0.00 : v1 / v2);
+					m2.setValue(op.equals(Operation.TIMES) ? v1 * v2 : ((v2 == 0) ? 0.00 : v1 / v2));
 					jsonArray.get(count).getMeasures().remove(index);
 					list.add(m2);
 					break;

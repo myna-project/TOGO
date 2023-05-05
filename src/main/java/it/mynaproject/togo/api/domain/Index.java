@@ -40,6 +40,15 @@ public class Index extends BaseDomain {
 	@JoinColumn(name="index_group_id")
 	private IndexGroup group;
 
+	@Column
+	private Float coefficient;
+
+	@Column(name="unit_of_measure")
+	private String unitOfMeasure;
+
+	@Column
+	private Integer decimals;
+
 	@Column(name="min_value")
 	private Double minValue;
 
@@ -80,6 +89,30 @@ public class Index extends BaseDomain {
 
 	public void setGroup(IndexGroup group) {
 		this.group = group;
+	}
+
+	public Float getCoefficient() {
+		return coefficient;
+	}
+
+	public void setCoefficient(Float coefficient) {
+		this.coefficient = coefficient;
+	}
+
+	public String getUnitOfMeasure() {
+		return unitOfMeasure;
+	}
+
+	public void setUnitOfMeasure(String unitOfMeasure) {
+		this.unitOfMeasure = unitOfMeasure;
+	}
+
+	public Integer getDecimals() {
+		return decimals;
+	}
+
+	public void setDecimals(Integer decimals) {
+		this.decimals = decimals;
 	}
 
 	public Double getMinValue() {
@@ -139,6 +172,9 @@ public class Index extends BaseDomain {
 		this.setName(input.getName());
 		this.setOrg(org);
 		this.setGroup(group);
+		this.setCoefficient(input.getCoefficient());
+		this.setUnitOfMeasure(input.getUnitOfMeasure());
+		this.setDecimals(input.getDecimals());
 		this.setMinValue(input.getMinValue());
 		this.setMaxValue(input.getMaxValue());
 		this.setWarningValue(input.getWarningValue());
@@ -154,6 +190,12 @@ public class Index extends BaseDomain {
 		builder.append((org != null) ? org.getId() : null);
 		builder.append(", group=");
 		builder.append((group != null) ? group.getId() : null);
+		builder.append(", coefficient=");
+		builder.append(coefficient);
+		builder.append(", unitOfMeasure=");
+		builder.append(unitOfMeasure);
+		builder.append(", decimals=");
+		builder.append(decimals);
 		builder.append(", minValue=");
 		builder.append(minValue);
 		builder.append(", maxValue=");

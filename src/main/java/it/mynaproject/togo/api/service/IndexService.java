@@ -19,12 +19,11 @@ import it.mynaproject.togo.api.model.IndexJson;
 
 public interface IndexService {
 
-	public Index getIndex(Integer id, Boolean calculate, Date start, Date end, Boolean isAdmin, String username);
+	public Index getIndex(Integer id, Date start, Date end, TimeAggregation timeAggregation, Boolean isAdmin, String username);
 	public List<Index> getIndices(Boolean isAdmin, String username);
 	public void persist(Index index);
 	public Index createIndexFromInput(IndexJson input, Boolean isAdmin, String username);
 	public void update(Index index);
 	public Index updateIndexFromInput(Integer id, IndexJson input, Boolean isAdmin, String username);
 	public void deleteIndexById(Integer id, Boolean isAdmin, String username);
-	public Index calculateLastIndex(Integer id, TimeAggregation timeAggregation, Integer nTimes, Boolean isAdmin, String username);
 }

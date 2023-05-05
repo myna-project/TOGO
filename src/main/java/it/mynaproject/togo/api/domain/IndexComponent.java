@@ -10,8 +10,6 @@
  ******************************************************************************/
 package it.mynaproject.togo.api.domain;
 
-import java.util.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -19,8 +17,6 @@ import javax.persistence.Enumerated;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name="index_component")
@@ -34,20 +30,12 @@ public class IndexComponent extends BaseDomain implements Comparable<IndexCompon
 	@Enumerated(EnumType.STRING)
 	private Operation operator;
 
-	@Column(name="relative_time")
-	private Integer relativeTime;
+	@Column(name="n_skip")
+	private Integer nSkip;
 
-	@Column(name="relative_period")
+	@Column(name="skip_period")
 	@Enumerated(EnumType.STRING)
-	private IndexRelativePeriod relativePeriod;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="start_time",nullable=false)
-	private Date startTime;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="end_time",nullable=false)
-	private Date endTime;
+	private IndexRelativePeriod skipPeriod;
 
 	@ManyToOne
 	@JoinColumn(name="index_id")
@@ -69,36 +57,20 @@ public class IndexComponent extends BaseDomain implements Comparable<IndexCompon
 		this.operator = operator;
 	}
 
-	public Integer getRelativeTime() {
-		return relativeTime;
+	public Integer getNSkip() {
+		return nSkip;
 	}
 
-	public void setRelativeTime(Integer relativeTime) {
-		this.relativeTime = relativeTime;
+	public void setNSkip(Integer nSkip) {
+		this.nSkip = nSkip;
 	}
 
-	public IndexRelativePeriod getRelativePeriod() {
-		return relativePeriod;
+	public IndexRelativePeriod getSkipPeriod() {
+		return skipPeriod;
 	}
 
-	public void setRelativePeriod(IndexRelativePeriod relativePeriod) {
-		this.relativePeriod = relativePeriod;
-	}
-
-	public Date getStartTime() {
-		return startTime;
-	}
-
-	public void setStartTime(Date startTime) {
-		this.startTime = startTime;
-	}
-
-	public Date getEndTime() {
-		return endTime;
-	}
-
-	public void setEndTime(Date endTime) {
-		this.endTime = endTime;
+	public void setSkipPeriod(IndexRelativePeriod skipPeriod) {
+		this.skipPeriod = skipPeriod;
 	}
 
 	public Index getIndex() {
@@ -123,14 +95,10 @@ public class IndexComponent extends BaseDomain implements Comparable<IndexCompon
 		builder.append((formula != null) ? formula.getId() : null);
 		builder.append(", operator=");
 		builder.append(operator);
-		builder.append(", relativeTime=");
-		builder.append(relativeTime);
-		builder.append(", relativePeriod=");
-		builder.append(relativePeriod);
-		builder.append(", startTime=");
-		builder.append(startTime);
-		builder.append(", endTime=");
-		builder.append(endTime);
+		builder.append(", nSkip=");
+		builder.append(nSkip);
+		builder.append(", skipPeriod=");
+		builder.append(skipPeriod);
 		builder.append(", index=");
 		builder.append((index != null) ? index.getId() : null);
 		builder.append("]");

@@ -404,6 +404,9 @@ public class JsonUtil {
 		indexJson.setOrgId(index.getOrg().getId());
 		if (index.getGroup() != null)
 			indexJson.setGroup(indexGroupToIndexGroupJson(index.getGroup()));
+		indexJson.setCoefficient(index.getCoefficient());
+		indexJson.setUnitOfMeasure(index.getUnitOfMeasure());
+		indexJson.setDecimals(index.getDecimals());
 		indexJson.setMinValue(index.getMinValue());
 		indexJson.setMaxValue(index.getMaxValue());
 		indexJson.setWarningValue(index.getWarningValue());
@@ -417,16 +420,10 @@ public class JsonUtil {
 			FormulaElementJson fe = new FormulaElementJson();
 			fe.setFormulaId(ic.getFormula().getId());
 			fe.setFormulaName(ic.getFormula().getName());
-			opList.add(ic.getOperator());
-
-			if ((ic.getStartTime() != null) && (ic.getEndTime() != null)) {
-				fe.setStartDate(ic.getStartTime());
-				fe.setEndDate(ic.getEndTime());
-			} else {
-				fe.setRelativePeriod(ic.getRelativePeriod());
-				fe.setRelativeTime(ic.getRelativeTime());
-			}
+			fe.setNSkip(ic.getNSkip());
+			fe.setSkipPeriod(ic.getSkipPeriod());
 			feList.add(fe);
+			opList.add(ic.getOperator());
 		}
 		indexJson.setFormulaElements(feList);
 		indexJson.setOperators(opList);

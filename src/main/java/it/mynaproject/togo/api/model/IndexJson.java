@@ -38,6 +38,13 @@ public class IndexJson {
 
 	private IndexGroupJson group;
 
+	private Float coefficient;
+
+	@JsonProperty("measure_unit")
+	private String unitOfMeasure;
+
+	private Integer decimals;
+
 	@JsonProperty("min_value")
 	private Double minValue;
 
@@ -89,6 +96,30 @@ public class IndexJson {
 
 	public void setGroup(IndexGroupJson group) {
 		this.group = group;
+	}
+
+	public Float getCoefficient() {
+		return coefficient;
+	}
+
+	public void setCoefficient(Float coefficient) {
+		this.coefficient = coefficient;
+	}
+
+	public String getUnitOfMeasure() {
+		return unitOfMeasure;
+	}
+
+	public void setUnitOfMeasure(String unitOfMeasure) {
+		this.unitOfMeasure = unitOfMeasure;
+	}
+
+	public Integer getDecimals() {
+		return decimals;
+	}
+
+	public void setDecimals(Integer decimals) {
+		this.decimals = decimals;
 	}
 
 	public Double getMinValue() {
@@ -158,6 +189,12 @@ public class IndexJson {
 		builder.append(orgId);
 		builder.append(", group=");
 		builder.append(group);
+		builder.append(", coefficient=");
+		builder.append(coefficient);
+		builder.append(", unit of measure=");
+		builder.append(unitOfMeasure);
+		builder.append(", decimals=");
+		builder.append(decimals);
 		builder.append(", minValue=");
 		builder.append(minValue);
 		builder.append(", maxValue=");

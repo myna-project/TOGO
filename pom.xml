@@ -7,7 +7,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>it.myna.togo</groupId>
 	<artifactId>it.myna.togo.api</artifactId>
-	<version>2.1.4</version>
+	<version>2.1.5</version>
 	<packaging>war</packaging>
 	<name>togo-api</name>
 
