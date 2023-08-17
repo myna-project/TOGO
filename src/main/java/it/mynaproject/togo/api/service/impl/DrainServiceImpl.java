@@ -98,9 +98,10 @@ public class DrainServiceImpl implements DrainService {
 			throw new ConflictException(7001, "Drain name " + input.getName() + " not available for this feed");
 
 		Drain baseDrain = (input.getBaseDrainId() != null) ? this.getDrain(input.getBaseDrainId(), isAdmin, username) : null;
+		Drain diffDrain = (input.getDiffDrainId() != null) ? this.getDrain(input.getDiffDrainId(), isAdmin, username) : null;
 
 		Drain drain = new Drain();
-		drain.populateDrainFromInput(input, baseDrain, f, true);
+		drain.populateDrainFromInput(input, baseDrain, diffDrain, f, true);
 
 		this.persist(drain);
 
@@ -127,6 +128,7 @@ public class DrainServiceImpl implements DrainService {
 			throw new ConflictException(7001, "Drain name " + input.getName() + " not available for this feed");
 
 		Drain baseDrain = (input.getBaseDrainId() != null) ? this.getDrain(input.getBaseDrainId(), isAdmin, username) : null;
+		Drain diffDrain = (input.getDiffDrainId() != null) ? this.getDrain(input.getDiffDrainId(), isAdmin, username) : null;
 
 		Boolean editable = true;
 		for (Client c : f.getClients()) {
@@ -136,7 +138,7 @@ public class DrainServiceImpl implements DrainService {
 			}
 		}
 
-		d.populateDrainFromInput(input, baseDrain, f, editable);
+		d.populateDrainFromInput(input, baseDrain, diffDrain, f, editable);
 
 		this.update(d);
 

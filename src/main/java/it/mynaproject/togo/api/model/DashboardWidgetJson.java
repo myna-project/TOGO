@@ -76,6 +76,9 @@ public class DashboardWidgetJson {
 	@JsonProperty("start_time")
 	private Date startTime;
 
+	@JsonProperty("end_time")
+	private Date endTime;
+
 	private Boolean legend;
 
 	@JsonProperty("legend_position")
@@ -219,6 +222,14 @@ public class DashboardWidgetJson {
 
 	public void setStartTime(Date startTime) {
 		this.startTime = startTime;
+	}
+
+	public Date getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(Date endTime) {
+		this.endTime = endTime;
 	}
 
 	public Boolean getLegend() {

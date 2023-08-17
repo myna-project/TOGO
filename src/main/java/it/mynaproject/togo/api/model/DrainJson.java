@@ -55,6 +55,9 @@ public class DrainJson {
 
 	private Float coefficient;
 
+	@JsonProperty("diff_drain_id")
+	private Integer diffDrainId;
+
 	private List<DrainControlDetailJson> controls = new ArrayList<>();
 
 	public Integer getId() {
@@ -145,6 +148,14 @@ public class DrainJson {
 		this.coefficient = coefficient;
 	}
 
+	public Integer getDiffDrainId() {
+		return diffDrainId;
+	}
+
+	public void setDiffDrainId(Integer diffDrainId) {
+		this.diffDrainId = diffDrainId;
+	}
+
 	public List<DrainControlDetailJson> getControls() {
 		return controls;
 	}
@@ -176,6 +187,8 @@ public class DrainJson {
 		builder.append(baseDrainId);
 		builder.append(", coefficient=");
 		builder.append(coefficient);
+		builder.append(", diffDrainId=");
+		builder.append(diffDrainId);
 		builder.append("]");
 		return builder.toString();
 	}

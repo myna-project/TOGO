@@ -21,6 +21,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.OneToOne;
 
 import it.mynaproject.togo.api.model.DrainJson;
 
@@ -59,6 +60,10 @@ public class Drain extends BaseDomain {
 
 	@Column(name="coefficient")
 	private Float coefficient;
+
+	@OneToOne
+	@JoinColumn(name="diff_drain_id")
+	private Drain diffDrain;
 
 	@OneToMany(fetch=FetchType.LAZY,cascade={CascadeType.MERGE,CascadeType.REFRESH},mappedBy="drain")
 	private List<DrainControlDetail> controls = new ArrayList<>();
@@ -143,6 +148,14 @@ public class Drain extends BaseDomain {
 		this.coefficient = coefficient;
 	}
 
+	public Drain getDiffDrain() {
+		return diffDrain;
+	}
+
+	public void setDiffDrain(Drain diffDrain) {
+		this.diffDrain = diffDrain;
+	}
+
 	public List<DrainControlDetail> getControls() {
 		return controls;
 	}
@@ -151,7 +164,7 @@ public class Drain extends BaseDomain {
 		this.controls = controls;
 	}
 
-	public void populateDrainFromInput(DrainJson input, Drain baseDrain, Feed feed, Boolean editable) {
+	public void populateDrainFromInput(DrainJson input, Drain baseDrain, Drain diffDrain, Feed feed, Boolean editable) {
 
 		if (editable) {
 			this.setMeasureId(input.getMeasureId());
@@ -165,6 +178,7 @@ public class Drain extends BaseDomain {
 		this.setBaseDrain(baseDrain);
 		this.setCoefficient(input.getCoefficient());
 		this.setType(input.getType());
+		this.setDiffDrain(diffDrain);
 	}
 
 	@Override
@@ -190,6 +204,8 @@ public class Drain extends BaseDomain {
 		builder.append((baseDrain != null) ? baseDrain.getId() : null);
 		builder.append(", coefficient=");
 		builder.append(coefficient);
+		builder.append(", diffDrain=");
+		builder.append((diffDrain != null) ? diffDrain.getId() : null);
 		builder.append("]");
 		return builder.toString();
 	}

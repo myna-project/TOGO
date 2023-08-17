@@ -81,6 +81,10 @@ public class DashboardWidget extends BaseDomain {
 	@Column(name="start_time")
 	private Date startTime;
 
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="end_time")
+	private Date endTime;
+
 	private Boolean legend;
 
 	@Column(name="legend_position")
@@ -228,6 +232,14 @@ public class DashboardWidget extends BaseDomain {
 		this.startTime = startTime;
 	}
 
+	public Date getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(Date endTime) {
+		this.endTime = endTime;
+	}
+
 	public Boolean getLegend() {
 		return legend;
 	}
@@ -340,8 +352,7 @@ public class DashboardWidget extends BaseDomain {
 		this.setxPos(input.getxPos());
 		this.setyPos(input.getyPos());
 		this.setWidgetType(input.getWidgetType());
-		if (costDrain != null)
-			this.setCostsDrain(costDrain);
+		this.setCostsDrain(costDrain);
 		this.setCostsAggregation(input.getCostsAggregation());
 		this.setIntervalSeconds(input.getIntervalSeconds());
 		this.setTitle(input.getTitle());
@@ -349,6 +360,7 @@ public class DashboardWidget extends BaseDomain {
 		this.setNumberPeriods(input.getNumberPeriods());
 		this.setPeriod((input.getPeriod() != null) ? input.getPeriod() : Period.hours);
 		this.setStartTime(input.getStartTime());
+		this.setEndTime(input.getEndTime());
 		this.setLegend(input.getLegend());
 		this.setLegendPosition(input.getLegendPosition());
 		this.setLegendLayout(input.getLegendLayout());
@@ -379,6 +391,7 @@ public class DashboardWidget extends BaseDomain {
 		this.setNumberPeriods(input.getNumberPeriods());
 		this.setPeriod((input.getPeriod() != null) ? input.getPeriod() : Period.hours);
 		this.setStartTime(input.getStartTime());
+		this.setEndTime(input.getEndTime());
 		this.setLegend(input.getLegend());
 		this.setLegendPosition(input.getLegendPosition());
 		this.setLegendLayout(input.getLegendLayout());

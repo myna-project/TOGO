@@ -257,6 +257,7 @@ public class JsonUtil {
 		drainJson.setDecimals(d.getDecimals());
 		drainJson.setClientDefaultDrain(d.getClientDefaultDrain());
 		drainJson.setBaseDrainId((d.getBaseDrain() != null) ? d.getBaseDrain().getId() : null);
+		drainJson.setDiffDrainId((d.getDiffDrain() != null) ? d.getDiffDrain().getId() : null);
 		drainJson.setCoefficient(d.getCoefficient());
 		List<DrainControlDetailJson> controlDetailsJson = new ArrayList<DrainControlDetailJson>();
 		for (DrainControlDetail detail : d.getControls())
@@ -520,6 +521,7 @@ public class JsonUtil {
 		widgetJson.setNumberPeriods(widget.getNumberPeriods());
 		widgetJson.setPeriod(widget.getPeriod());
 		widgetJson.setStartTime(widget.getStartTime());
+		widgetJson.setEndTime(widget.getEndTime());
 		widgetJson.setLegend(widget.getLegend());
 		widgetJson.setLegendPosition(widget.getLegendPosition());
 		widgetJson.setLegendLayout(widget.getLegendLayout());
