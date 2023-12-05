@@ -2,12 +2,11 @@ package it.mynaproject.togo.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import it.mynaproject.togo.api.domain.MeasureAggregation;
 import it.mynaproject.togo.api.domain.Operation;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,6 +27,9 @@ public class DashboardWidgetDetailJson {
 	private MeasureAggregation aggregation;
 
 	private Operation operator;
+
+	@JsonProperty("positive_negative_value")
+	private String positiveNegativeValue;
 
 	public Integer getIndexId() {
 		return indexId;
@@ -77,6 +79,14 @@ public class DashboardWidgetDetailJson {
 		this.operator = operator;
 	}
 
+	public String getPositiveNegativeValue() {
+		return positiveNegativeValue;
+	}
+
+	public void setPositiveNegativeValue(String positiveNegativeValue) {
+		this.positiveNegativeValue = positiveNegativeValue;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -92,6 +102,8 @@ public class DashboardWidgetDetailJson {
 		builder.append(aggregation);
 		builder.append(", operator=");
 		builder.append(operator);
+		builder.append(", positiveNegativeValue=");
+		builder.append(positiveNegativeValue);
 		builder.append("]");
 		return builder.toString();
 	}

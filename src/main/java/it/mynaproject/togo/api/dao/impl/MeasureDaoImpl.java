@@ -15,6 +15,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +44,7 @@ import it.mynaproject.togo.api.domain.impl.MeasureDouble;
 import it.mynaproject.togo.api.domain.impl.MeasureString;
 import it.mynaproject.togo.api.exception.ConflictException;
 import it.mynaproject.togo.api.exception.GenericException;
+import it.mynaproject.togo.api.util.Pair;
 
 @Repository
 public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
@@ -188,9 +191,13 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 	@SuppressWarnings("unchecked")
 	@Override
 	@Transactional
-	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation) {
+	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue) {
 
-		log.debug("Start selection of measures {} measureType: {} start: {} end: {} time aggregation: {} measureAggregation {}", drainIds, measureType, start, end, timeAggregation, measureAggregation);
+		log.debug("Start selection of measures {} measureType: {} start: {} end: {} time aggregation: {} measureAggregation: {} measurePositiveNegativeValue: {}", drainIds, measureType, start, end, timeAggregation, measureAggregation, measurePositiveNegativeValue);
+
+		TimeAggregation baseTimeAggregation = timeAggregation;
+		if (!measurePositiveNegativeValue.isEmpty())
+			timeAggregation = TimeAggregation.NONE;
 
 		String queryMeasureAggr = (measureAggregation != null) ? measureAggregation.toString().toUpperCase() : "";
 
@@ -206,6 +213,7 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 			String whereTime = "(bucket >= '" + df.format(start) + "' AND bucket <= '" + df.format(end) + "')";
 			String groupBy = " GROUP BY drain_id";
 			String orderBy = (timeAggregation.equals(TimeAggregation.ALL)) ? "" : " ORDER BY bucket";
+
 			switch (timeAggregation) {
 			case ALL:
 				whereTime = "(time >= '" + df.format(start) + "' AND time <= '" + df.format(end) + "')";
@@ -297,31 +305,111 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 			query.setReadOnly(true);
 
 			ScrollableResults results = query.scroll(ScrollMode.FORWARD_ONLY);
+
+			List<Pair<Date, Date>> slots = new ArrayList<Pair<Date, Date>>();
+			Map<String, DoubleSummaryStatistics[]> stats = new HashMap<String, DoubleSummaryStatistics[]>();
+			if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
+				Calendar startCal = Calendar.getInstance();
+				startCal.setTime(start);
+				Calendar endCal = Calendar.getInstance();
+				endCal.setTime(end);
+				createSlotsStats(baseTimeAggregation, slots, start, end, startCal);
+			}
 			while (results.next()) {
 				Object[] arrayObjects = results.get();
-
-				for (int i = 2; i < arrayObjects.length; i++) {
-					if (arrayObjects[i] instanceof Float) {
-						arrayObjects[i] = ((Float) arrayObjects[i]).intValue();
-					} else if (arrayObjects[i] instanceof Double) {
-						arrayObjects[i] = ((Double) arrayObjects[i]).intValue();
+				if (arrayObjects[1] != null) {
+					for (int i = 2; i < arrayObjects.length; i++) {
+						if (arrayObjects[i] instanceof Float) {
+							arrayObjects[i] = ((Float) arrayObjects[i]).intValue();
+						} else if (arrayObjects[i] instanceof Double) {
+							arrayObjects[i] = ((Double) arrayObjects[i]).intValue();
+						}
 					}
-				}
+					String drainMeasuresKey = String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (measurePositiveNegativeValue.isEmpty() ? "" : ("_" + measurePositiveNegativeValue));
+					// Only positive/negative case
+					if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
+						if (!stats.containsKey(drainMeasuresKey)) {
+							DoubleSummaryStatistics[] newStats = new DoubleSummaryStatistics[slots.size()];
+							stats.put(drainMeasuresKey,newStats);
+						}
+						for (Integer k = 0; k < slots.size(); k++) {
+							if (stats.get(drainMeasuresKey)[k] == null ) {
+								DoubleSummaryStatistics newStat = new DoubleSummaryStatistics();
+								stats.get(drainMeasuresKey)[k] = newStat;
+							}
+							Calendar time = Calendar.getInstance();
+							time.setTime(new Date(((Timestamp) arrayObjects[2]).getTime()));
+							if (time.getTime().equals(slots.get(k).getLeft()) || (time.getTime().after(slots.get(k).getLeft()) && time.getTime().before(slots.get(k).getRight()))) {
+								if ((Double) arrayObjects[1] != null) {
+									if (measurePositiveNegativeValue.equals("pos")) {
+										stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] < 0 ? 0 : (Double) arrayObjects[1]);
+									} else {
+										stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] > 0 ? 0 : (Double) arrayObjects[1]);
+									}
+								}
+								break;
+							}
+						}
+					} else {
+						Measure measure = new MeasureDouble();
+						measure.setValue(((measurePositiveNegativeValue.equals("pos") && ((Double) arrayObjects[1] < 0)) || (measurePositiveNegativeValue.equals("neg") && ((Double) arrayObjects[1] > 0))) ? 0 : (Double) arrayObjects[1]);
+						measure.setTime(timeAggregation.equals(TimeAggregation.ALL) ? start : (Timestamp) arrayObjects[2]);
 
-				Measure measure = new MeasureDouble();
-				measure.setValue((Double) arrayObjects[1]);
-				measure.setTime(timeAggregation.equals(TimeAggregation.ALL) ? start : (Timestamp) arrayObjects[2]);
-
-				if (drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation) != null) {
-					drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation).add(measure);
-				} else {
-					List<Measure> measures = new ArrayList<Measure>();
-					measures.add(measure);
-					drainMeasures.put(String.valueOf((Integer) arrayObjects[0] + "_" + measureAggregation), measures);
+						if (drainMeasures.get(drainMeasuresKey) != null) {
+							drainMeasures.get(drainMeasuresKey).add(measure);
+						} else {
+							List<Measure> measures = new ArrayList<Measure>();
+							measures.add(measure);
+							drainMeasures.put(drainMeasuresKey, measures);
+						}
+					}
 				}
 			}
 			results.close();
 			statelessSession.close();
+
+			if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
+				for (String drainKey : stats.keySet()) {
+					for (Integer k = 0; k < slots.size(); k++) {
+						Measure measure = new MeasureDouble();
+						if ((stats.get(drainKey)[k] != null) && (stats.get(drainKey)[k].getCount() > 0)) {
+							switch (measureAggregation) {
+								case SUM: {
+									measure.setValue(stats.get(drainKey)[k].getSum());
+									measure.setTime(slots.get(k).getLeft());
+									break;
+								}
+								case AVG: {
+									measure.setValue(stats.get(drainKey)[k].getAverage());
+									measure.setTime(slots.get(k).getLeft());
+									break;
+								}
+								case MIN: {
+									measure.setValue(stats.get(drainKey)[k].getMin());
+									measure.setTime(slots.get(k).getLeft());
+									break;
+								}
+								case MAX: {
+									measure.setValue(stats.get(drainKey)[k].getMax());
+									measure.setTime(slots.get(k).getLeft());
+									break;
+								}
+								default:
+									break;
+							}
+						}
+						if ((measure.getValue() != null) && (measure.getTime() != null)) {
+							if (drainMeasures.get(drainKey) != null) {
+								drainMeasures.get(drainKey).add(measure);
+							} else {
+								List<Measure> measures = new ArrayList<Measure>();
+								measures.add(measure);
+								drainMeasures.put(drainKey, measures);
+							}
+						}
+					}
+				}
+			}
 		} else {
 			String year = "EXTRACT(year FROM time)";
 			String month = "EXTRACT(month FROM time)";
@@ -465,5 +553,114 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 		}
 
 		return drainMeasures;
+	}
+
+	public void createSlotsStats(TimeAggregation timeAggregation, List<Pair<Date, Date>> slots, Date start_date, Date end_date, Calendar startCal) {
+
+		Calendar endSlotCal = Calendar.getInstance();
+		endSlotCal.setTime(start_date);
+
+		switch (timeAggregation) {
+			case ALL: {
+				slots.add(new Pair<Date, Date>(start_date, end_date));
+			}
+			case YEAR: {
+				startCal.set(Calendar.MONTH, 0);
+				startCal.set(Calendar.DATE, 1);
+				startCal.set(Calendar.HOUR_OF_DAY, 0);
+				startCal.set(Calendar.MINUTE, 0);
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.getActualMaximum(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.getActualMaximum(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.getActualMaximum(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, startCal.getActualMaximum(Calendar.MINUTE));
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			case MONTH: {
+				startCal.set(Calendar.DATE, 1);
+				startCal.set(Calendar.HOUR_OF_DAY, 0);
+				startCal.set(Calendar.MINUTE, 0);
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.get(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.getActualMaximum(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.getActualMaximum(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, startCal.getActualMaximum(Calendar.MINUTE));
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			case DAY: {
+				startCal.set(Calendar.HOUR_OF_DAY, 0);
+				startCal.set(Calendar.MINUTE, 0);
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.get(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.get(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.getActualMaximum(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, startCal.getActualMaximum(Calendar.MINUTE));
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			case HOUR: {
+				startCal.set(Calendar.MINUTE, 0);
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.get(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.get(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.get(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, startCal.getActualMaximum(Calendar.MINUTE));
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			case QHOUR: {
+				startCal.set(Calendar.MINUTE, (startCal.get(Calendar.MINUTE) / 15));
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.get(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.get(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.get(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, (startCal.get(Calendar.MINUTE) / 15) * 15 + 14);  // Round up to the next quarter hour
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			case MINUTE: {
+				startCal.set(Calendar.SECOND, 0);
+				while ((startCal.getTime().before(end_date))) {
+					endSlotCal.set(Calendar.YEAR, startCal.get(Calendar.YEAR));
+					endSlotCal.set(Calendar.MONTH, startCal.get(Calendar.MONTH));
+					endSlotCal.set(Calendar.DATE, startCal.get(Calendar.DATE));
+					endSlotCal.set(Calendar.HOUR_OF_DAY, startCal.get(Calendar.HOUR_OF_DAY));
+					endSlotCal.set(Calendar.MINUTE, (startCal.get(Calendar.MINUTE)));
+					endSlotCal.set(Calendar.SECOND, startCal.getActualMaximum(Calendar.SECOND));
+					slots.add(new Pair<Date, Date>(startCal.getTime(), endSlotCal.getTime()));
+					startCal = (Calendar) endSlotCal.clone();
+					startCal.add(Calendar.SECOND, 1);
+				}
+			}
+			default:
+				break;
+		}
 	}
 }

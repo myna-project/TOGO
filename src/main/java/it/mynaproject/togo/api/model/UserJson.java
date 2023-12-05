@@ -11,6 +11,7 @@
 package it.mynaproject.togo.api.model;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.Email;
@@ -62,6 +63,15 @@ public class UserJson {
 
 	@JsonProperty("dashboard_ids")
 	private List<Integer> dashboardIds = new ArrayList<>();
+
+	@JsonProperty("default_start")
+	private Date defaultStart;
+
+	@JsonProperty("default_end")
+	private Date defaultEnd;
+
+	@JsonProperty("drain_tree_depth")
+	private String drainTreeDepth;
 
 	public Integer getId() {
 		return id;
@@ -167,13 +177,45 @@ public class UserJson {
 		this.jobIds = list;
 	}
 
-	public List<Integer> getDashboardIds() { return dashboardIds; }
+	public List<Integer> getDashboardIds() {
+		return dashboardIds;
+	}
 
-	public void setDashboardIds(List<Integer> list) { this.dashboardIds = list; }
+	public void setDashboardIds(List<Integer> list) {
+		this.dashboardIds = list;
+	}
 
-	public Integer getDefaultDashboardId() { return defaultDashboardId; }
+	public Integer getDefaultDashboardId() {
+		return defaultDashboardId;
+	}
 
-	public void setDefaultDashboardId(Integer defaultDashboardId) { this.defaultDashboardId = defaultDashboardId; }
+	public void setDefaultDashboardId(Integer defaultDashboardId) {
+		this.defaultDashboardId = defaultDashboardId;
+	}
+
+	public Date getDefaultStart() {
+		return defaultStart;
+	}
+
+	public void setDefaultStart(Date defaultStart) {
+		this.defaultStart = defaultStart;
+	}
+
+	public Date getDefaultEnd() {
+		return defaultEnd;
+	}
+
+	public void setDefaultEnd(Date defaultEnd) {
+		this.defaultEnd = defaultEnd;
+	}
+
+	public String getDrainTreeDepth() {
+		return drainTreeDepth;
+	}
+
+	public void setDrainTreeDepth(String drainTreeDepth) {
+		this.drainTreeDepth = drainTreeDepth;
+	}
 
 	@Override
 	public String toString() {

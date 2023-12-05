@@ -134,6 +134,7 @@ public class MeasureController {
 			@RequestParam(value="ids[]") String[] drainIds,
 			@RequestParam(value="operations[]") ArrayList<Operation> drainOperations,
 			@RequestParam(value="measureAggregation[]") ArrayList<MeasureAggregation> measureAggregations,
+			@RequestParam(value="positiveNegativeValues[]") ArrayList<String> positiveNegativeValues,
 			@RequestParam(value="start") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
 			@RequestParam(value="end") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
 			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation
@@ -141,7 +142,7 @@ public class MeasureController {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, start, end, timeAggregation, true, user.getUsername());
+		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, start, end, timeAggregation, true, user.getUsername());
 	}
 
 	@ApiResponses({
@@ -261,6 +262,7 @@ public class MeasureController {
 			@RequestParam(value="ids[]") String[] drainIds,
 			@RequestParam(value="operations[]") ArrayList<Operation> drainOperations,
 			@RequestParam(value="measureAggregation[]") ArrayList<MeasureAggregation> measureAggregations,
+			@RequestParam(value="positiveNegativeValues[]") ArrayList<String> positiveNegativeValues,
 			@RequestParam(value="start") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
 			@RequestParam(value="end") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
 			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation
@@ -268,7 +270,7 @@ public class MeasureController {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, start, end, timeAggregation, false, user.getUsername());
+		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, start, end, timeAggregation, false, user.getUsername());
 	}
 
 	@ApiResponses({

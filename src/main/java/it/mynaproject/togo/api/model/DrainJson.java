@@ -50,6 +50,9 @@ public class DrainJson {
 	@JsonProperty("client_default_drain")
 	private Boolean clientDefaultDrain;
 
+	@JsonProperty("positive_negative_value")
+	private Boolean positiveNegativeValue;
+
 	@JsonProperty("base_drain_id")
 	private Integer baseDrainId;
 
@@ -132,6 +135,14 @@ public class DrainJson {
 		this.clientDefaultDrain = clientDefaultDrain;
 	}
 
+	public Boolean getPositiveNegativeValue() {
+		return positiveNegativeValue;
+	}
+
+	public void setPositiveNegativeValue(Boolean positiveNegativeValue) {
+		this.positiveNegativeValue = positiveNegativeValue;
+	}
+
 	public Integer getBaseDrainId() {
 		return baseDrainId;
 	}
@@ -183,6 +194,8 @@ public class DrainJson {
 		builder.append(decimals);
 		builder.append(", clientDefaultDrain=");
 		builder.append(clientDefaultDrain);
+		builder.append(", positiveNegativeValue=");
+		builder.append(positiveNegativeValue);
 		builder.append(", baseDrainId=");
 		builder.append(baseDrainId);
 		builder.append(", coefficient=");

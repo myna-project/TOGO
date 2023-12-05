@@ -12,6 +12,7 @@ package it.mynaproject.togo.api.domain;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -65,6 +66,15 @@ public class User extends BaseDomain {
 	@ManyToMany(fetch=FetchType.LAZY)
 	@JoinTable(name="users_jobs",joinColumns={ @JoinColumn(name="user_id", nullable=false, updatable=false) },inverseJoinColumns={ @JoinColumn(name="job_id", nullable=false, updatable=false) })
 	private List<Job> jobList = new ArrayList<>();
+
+	@Column(name="default_start")
+	private Date defaultStart;
+
+	@Column(name="default_end")
+	private Date defaultEnd;
+
+	@Column(name="drain_tree_depth",nullable=false)
+	private String drainTreeDepth;
 
 	public String getUsername() {
 		return username;
@@ -178,6 +188,30 @@ public class User extends BaseDomain {
 		this.dashboardsUsers.remove(dashboardsUsers);
 	}
 
+	public Date getDefaultStart() {
+		return defaultStart;
+	}
+
+	public void setDefaultStart(Date defaultStart) {
+		this.defaultStart = defaultStart;
+	}
+
+	public Date getDefaultEnd() {
+		return defaultEnd;
+	}
+
+	public void setDefaultEnd(Date defaultEnd) {
+		this.defaultEnd = defaultEnd;
+	}
+
+	public String getDrainTreeDepth() {
+		return drainTreeDepth;
+	}
+
+	public void setDrainTreeDepth(String drainTreeDepth) {
+		this.drainTreeDepth = drainTreeDepth;
+	}
+
 	public void populateUserFromInput(UserJson input, List<Role> roles) {
 
 		this.setUsername(input.getUsername());
@@ -192,5 +226,8 @@ public class User extends BaseDomain {
 		this.setLang(input.getLang());
 		this.setEnabled((input.getEnabled() != null) ? (input.getEnabled () ? 1 : 0) : 0);
 		this.setRoles(roles);
+		this.setDefaultStart(input.getDefaultStart());
+		this.setDefaultEnd(input.getDefaultEnd());
+		this.setDrainTreeDepth(input.getDrainTreeDepth());
 	}
 }

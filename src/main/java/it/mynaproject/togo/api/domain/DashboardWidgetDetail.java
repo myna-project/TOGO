@@ -10,6 +10,7 @@
  ******************************************************************************/
 package it.mynaproject.togo.api.domain;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -48,6 +49,9 @@ public class DashboardWidgetDetail extends BaseDomain {
 
 	@Enumerated(EnumType.STRING)
 	private Operation operator;
+
+	@Column(name="positive_negative_value")
+	private String positiveNegativeValue;
 
 	public DashboardWidget getDashboardWidget() {
 		return dashboardWidget;
@@ -105,6 +109,14 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.operator = operator;
 	}
 
+	public String getPositiveNegativeValue() {
+		return positiveNegativeValue;
+	}
+
+	public void setPositiveNegativeValue(String positiveNegativeValue) {
+		this.positiveNegativeValue = positiveNegativeValue;
+	}
+
 	public void populateDashboardWidgetDetailFromInput(DashboardWidgetDetailJson input, Drain drain, Formula formula, Index index, DrainControl control) {
 
 		this.setIndex(index);
@@ -113,6 +125,7 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.setDrainControl(control);
 		this.setAggregation(input.getAggregation());
 		this.setOperator(input.getOperator());
+		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
 	}
 
 	public void duplicateDashboardWidgetDetail(DashboardWidgetDetail input) {
@@ -123,6 +136,7 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.setDrainControl(input.drainControl);
 		this.setAggregation(input.getAggregation());
 		this.setOperator(input.getOperator());
+		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
 	}
 
 	@Override
@@ -142,6 +156,8 @@ public class DashboardWidgetDetail extends BaseDomain {
 		builder.append(aggregation);
 		builder.append(", operator=");
 		builder.append(operator);
+		builder.append(", positiveNegativeValue=");
+		builder.append(positiveNegativeValue);
 		builder.append("]");
 		return builder.toString();
 	}

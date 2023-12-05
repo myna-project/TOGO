@@ -10,6 +10,7 @@
  ******************************************************************************/
 package it.mynaproject.togo.api.dao;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import it.mynaproject.togo.api.domain.Measure;
 import it.mynaproject.togo.api.domain.MeasureAggregation;
 import it.mynaproject.togo.api.domain.MeasureType;
 import it.mynaproject.togo.api.domain.TimeAggregation;
+import it.mynaproject.togo.api.util.Pair;
 
 public interface MeasureDao {
 
@@ -29,5 +31,6 @@ public interface MeasureDao {
 	public void delete(Measure measure);
 	public void deleteMultiple(List<Measure> measures);
 	public List<Measure> getMeasures(Drain d, MeasureType measureType, Date start, Date end);
-	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureArregation);
+	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue);
+	public void createSlotsStats(TimeAggregation timeAggregation, List<Pair<Date, Date>> slots, Date start_date, Date end_date, Calendar startCal);
 }

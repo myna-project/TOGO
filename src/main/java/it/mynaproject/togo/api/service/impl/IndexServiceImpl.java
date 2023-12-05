@@ -202,7 +202,7 @@ public class IndexServiceImpl implements IndexService {
 			for (FormulaComponent fc : f.getComponents()) {
 				drainOperations.add(fc.getOperator());
 				measureAggregations.add(fc.getAggregation());
-				drainIds[i] = String.valueOf(fc.getDrain().getId());
+				drainIds[i] = String.valueOf("d_" + fc.getDrain().getId());
 				i++;
 			}
 			if ((ic.getNSkip() != null) && (ic.getSkipPeriod() != null)) {
@@ -240,7 +240,7 @@ public class IndexServiceImpl implements IndexService {
 				end_time = endCal.getTime();
 			}
 
-			List<PairDrainMeasuresJson> measuresJson = this.measureService.getMeasures(drainIds, drainOperations, measureAggregations, start_time, end_time, aggregation, isAdmin, username);
+			List<PairDrainMeasuresJson> measuresJson = this.measureService.getMeasures(drainIds, drainOperations, measureAggregations, null, start_time, end_time, aggregation, isAdmin, username);
 			if (measuresJson.size() > 1)
 				throw new GenericException(12007, "Not unique result for a formula element. Please control sintax and time constraints of formula " + ic.getFormula().getId() + " (" + ic.getFormula().getName() + ")");
 

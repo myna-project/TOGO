@@ -208,7 +208,7 @@ public class DrainControlTaskInitializer implements InitializingBean, Disposable
 							ArrayList<Operation> drainOperations = new ArrayList<Operation>();
 							ArrayList<MeasureAggregation> measureAggregations = new ArrayList<MeasureAggregation>();
 							if (detail.getDrain() != null) {
-								drainIds[0] = String.valueOf(detail.getDrain().getId());
+								drainIds[0] = "d_" + detail.getDrain().getId();
 								drainOperations.add(Operation.SEMICOLON);
 								measureAggregations.add(detail.getAggregation());
 							} else {
@@ -216,13 +216,13 @@ public class DrainControlTaskInitializer implements InitializingBean, Disposable
 								drainIds = new String[f.getComponents().size()];
 								int i = 0;
 								for (FormulaComponent fc : f.getComponents()) {
-									drainIds[i] = String.valueOf(fc.getDrain().getId());
+									drainIds[i] = "d_" + fc.getDrain().getId();
 									drainOperations.add(fc.getOperator());
 									measureAggregations.add(fc.getAggregation());
 									i++;
 								}
 							}
-							List<PairDrainMeasuresJson> lastHourMeasuresJson = measureService.getMeasures(drainIds, drainOperations, measureAggregations, start.getTime(), end.getTime(), TimeAggregation.ALL, Boolean.TRUE, "");
+							List<PairDrainMeasuresJson> lastHourMeasuresJson = measureService.getMeasures(drainIds, drainOperations, measureAggregations, null, start.getTime(), end.getTime(), TimeAggregation.ALL, Boolean.TRUE, "");
 							if (lastHourMeasuresJson.size() > 0) {
 								PairDrainMeasuresJson drainMeasuresJson = lastHourMeasuresJson.get(0);
 								if (drainMeasuresJson.getMeasures().size() > 0)

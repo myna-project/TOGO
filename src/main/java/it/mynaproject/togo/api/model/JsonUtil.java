@@ -198,6 +198,9 @@ public class JsonUtil {
 		uj.setLang(u.getLang());
 		uj.setEnabled(u.getEnabled() == 1);
 		uj.setEmail(u.getEmail());
+		uj.setDefaultStart(u.getDefaultStart());
+		uj.setDefaultEnd(u.getDefaultEnd());
+		uj.setDrainTreeDepth(u.getDrainTreeDepth());
 		if (u.getAvatar() != null)
 			uj.setAvatar(Base64.getEncoder().encodeToString(u.getAvatar()));
 		List<Integer> rolesId = new ArrayList<>();
@@ -256,6 +259,7 @@ public class JsonUtil {
 		drainJson.setMeasureType(d.getMeasureType());
 		drainJson.setDecimals(d.getDecimals());
 		drainJson.setClientDefaultDrain(d.getClientDefaultDrain());
+		drainJson.setPositiveNegativeValue(d.getPositiveNegativeValue());
 		drainJson.setBaseDrainId((d.getBaseDrain() != null) ? d.getBaseDrain().getId() : null);
 		drainJson.setDiffDrainId((d.getDiffDrain() != null) ? d.getDiffDrain().getId() : null);
 		drainJson.setCoefficient(d.getCoefficient());
@@ -303,12 +307,16 @@ public class JsonUtil {
 		List<MeasureAggregation> aggrs = new ArrayList<MeasureAggregation>();
 		List<Operation> opers = new ArrayList<Operation>();
 		List<String> legends = new ArrayList<String>();
+		List<String> positiveNegativeValues = new ArrayList<String>();
 		for (FormulaComponent fc : f.getComponents()) {
 			comps.add(fc.getDrain().getId());
 			opers.add(fc.getOperator());
 			aggrs.add(fc.getAggregation());
-			legends.add(fc.getLegend());		}
+			legends.add(fc.getLegend());
+			positiveNegativeValues.add(fc.getPositiveNegativeValue());
+		}
 		fj.setComponents(comps);
+		fj.setPositiveNegativeValues(positiveNegativeValues);
 		fj.setAggregations(aggrs);
 		fj.setOperators(opers);
 		fj.setLegends(legends);
@@ -555,6 +563,7 @@ public class JsonUtil {
 			detailJson.setDrainControlId(detail.getDrainControl().getId());
 		detailJson.setAggregation(detail.getAggregation());
 		detailJson.setOperator(detail.getOperator());
+		detailJson.setPositiveNegativeValue((detail.getPositiveNegativeValue() != null) ? detail.getPositiveNegativeValue() : "");
 
 		return detailJson;
 	}

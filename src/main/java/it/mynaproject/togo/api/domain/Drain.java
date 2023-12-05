@@ -54,6 +54,9 @@ public class Drain extends BaseDomain {
 	@Column(name="client_default_drain")
 	private Boolean clientDefaultDrain;
 
+	@Column(name="positive_negative_value")
+	private Boolean positiveNegativeValue;
+
 	@ManyToOne
 	@JoinColumn(name="base_drain_id")
 	private Drain baseDrain;
@@ -132,6 +135,14 @@ public class Drain extends BaseDomain {
 		this.clientDefaultDrain = clientDefaultDrain;
 	}
 
+	public Boolean getPositiveNegativeValue() {
+		return positiveNegativeValue;
+	}
+
+	public void setPositiveNegativeValue(Boolean positiveNegativeValue) {
+		this.positiveNegativeValue = positiveNegativeValue;
+	}
+
 	public Drain getBaseDrain() {
 		return baseDrain;
 	}
@@ -173,11 +184,12 @@ public class Drain extends BaseDomain {
 			this.setMeasureType(input.getMeasureType());
 		}
 		this.setFeed(feed);
-		this.setClientDefaultDrain((input.getClientDefaultDrain() != null) ? input.getClientDefaultDrain() : false);
 		this.setDecimals(input.getDecimals());
+		this.setType(input.getType());
+		this.setClientDefaultDrain((input.getClientDefaultDrain() != null) ? input.getClientDefaultDrain() : false);
+		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
 		this.setBaseDrain(baseDrain);
 		this.setCoefficient(input.getCoefficient());
-		this.setType(input.getType());
 		this.setDiffDrain(diffDrain);
 	}
 
@@ -200,6 +212,8 @@ public class Drain extends BaseDomain {
 		builder.append(decimals);
 		builder.append(", clientDefaultDrain=");
 		builder.append(clientDefaultDrain);
+		builder.append(", positiveNegativeValue=");
+		builder.append(positiveNegativeValue);
 		builder.append(", baseDrain=");
 		builder.append((baseDrain != null) ? baseDrain.getId() : null);
 		builder.append(", coefficient=");

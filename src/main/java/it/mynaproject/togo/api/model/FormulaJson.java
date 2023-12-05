@@ -34,6 +34,9 @@ public class FormulaJson {
 
 	private List<Integer> components;
 
+	@JsonProperty("positive_negative_values")
+	private List<String> positiveNegativeValues;
+
 	private List<MeasureAggregation> aggregations;
 
 	private List<Operation> operators;
@@ -80,6 +83,14 @@ public class FormulaJson {
 		this.components = components;
 	}
 
+	public List<String> getPositiveNegativeValues() {
+		return positiveNegativeValues;
+	}
+
+	public void setPositiveNegativeValues(List<String> positiveNegativeValues) {
+		this.positiveNegativeValues = positiveNegativeValues;
+	}
+
 	public List<MeasureAggregation> getAggregations() {
 		return aggregations;
 	}
@@ -115,6 +126,8 @@ public class FormulaJson {
 		builder.append(name);
 		builder.append(", components=");
 		builder.append(components);
+		builder.append(", positiveNegativeValues=");
+		builder.append(positiveNegativeValues);
 		builder.append(", aggregations=");
 		builder.append(aggregations);
 		builder.append(", operators=");

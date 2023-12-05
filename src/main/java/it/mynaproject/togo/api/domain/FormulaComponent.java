@@ -41,6 +41,9 @@ public class FormulaComponent extends BaseDomain implements Comparable<FormulaCo
 	@JoinColumn(name="formula_id")
 	private Formula formula;
 
+	@Column(name="positive_negative_value")
+	private String positiveNegativeValue;
+
 	public Drain getDrain() {
 		return drain;
 	}
@@ -73,6 +76,14 @@ public class FormulaComponent extends BaseDomain implements Comparable<FormulaCo
 		this.legend = legend;
 	}
 
+	public String getPositiveNegativeValue() {
+		return positiveNegativeValue;
+	}
+
+	public void setPositiveNegativeValue(String positiveNegativeValue) {
+		this.positiveNegativeValue = positiveNegativeValue;
+	}
+
 	public Formula getFormula() {
 		return formula;
 	}
@@ -97,6 +108,8 @@ public class FormulaComponent extends BaseDomain implements Comparable<FormulaCo
 		builder.append(operator);
 		builder.append(", aggregation=");
 		builder.append(aggregation);
+		builder.append(", positiveNegativeValue=");
+		builder.append(positiveNegativeValue);
 		builder.append(", formula=");
 		builder.append((formula != null) ? formula.getId() : null);
 		builder.append("]");

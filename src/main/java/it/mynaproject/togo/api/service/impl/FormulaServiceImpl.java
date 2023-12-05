@@ -151,6 +151,7 @@ public class FormulaServiceImpl implements FormulaService {
 			FormulaComponent newComp = new FormulaComponent();
 			newComp.setDrain(drainService.getDrain(drainId, isAdmin, username));
 			newComp.setFormula(f);
+			newComp.setPositiveNegativeValue(input.getPositiveNegativeValues().get(i - 1));
 			newComp.setAggregation(input.getAggregations().get(i - 1));
 			newComp.setOperator((i == input.getComponents().size()) ? Operation.SEMICOLON : input.getOperators().get(i - 1));
 			newComp.setLegend(input.getLegends().get(i -1));
