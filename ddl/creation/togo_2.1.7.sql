@@ -23,7 +23,8 @@ CREATE  TABLE application_user (
     enabled integer NOT NULL DEFAULT 0,
     default_start timestamp with time zone,
     default_end timestamp with time zone,
-    drain_tree_depth character varying(20) NOT NULL
+    drain_tree_depth character varying(20) NOT NULL,
+    dark_theme boolean DEFAULT false
 );
 ALTER TABLE application_user OWNER TO togo;
 
@@ -146,7 +147,9 @@ CREATE TABLE drain (
     measure_type character varying(2) NOT NULL,
     client_default_drain boolean NOT NULL DEFAULT FALSE,
     diff_drain_id integer,
-    positive_negative_value boolean NOT NULL DEFAULT FALSE
+    positive_negative_value boolean NOT NULL DEFAULT FALSE,
+    max_value double precision,
+    min_value double precision
 );
 ALTER TABLE drain OWNER TO togo;
 
@@ -209,7 +212,8 @@ CREATE TABLE formula_component (
     formula_id integer NOT NULL,
     operator character varying(20),
     legend character varying(255),
-    positive_negative_value varchar(10)
+    positive_negative_value varchar(10),
+    exclude_outliers boolean DEFAULT FALSE
 );
 ALTER TABLE formula_component OWNER TO togo;
 
@@ -376,7 +380,8 @@ CREATE TABLE dashboard_widget_detail (
     drain_control_id integer,
     aggregation character varying(5),
     operator character varying(20),
-    positive_negative_value varchar(10)
+    positive_negative_value varchar(10),
+    exclude_outliers boolean DEFAULT FALSE
 );
 ALTER TABLE dashboard_widget_detail OWNER TO togo;
 

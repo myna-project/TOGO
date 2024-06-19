@@ -191,13 +191,22 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 	@SuppressWarnings("unchecked")
 	@Override
 	@Transactional
-	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue) {
+	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, String minMaxValue, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue) {
 
-		log.debug("Start selection of measures {} measureType: {} start: {} end: {} time aggregation: {} measureAggregation: {} measurePositiveNegativeValue: {}", drainIds, measureType, start, end, timeAggregation, measureAggregation, measurePositiveNegativeValue);
+		log.debug("Start selection of measures {} measureType: {} start: {} end: {} time aggregation: {} measureAggregation: {} measurePositiveNegativeValue: {} minMaxValue: {}", drainIds, measureType, start, end, timeAggregation, measureAggregation, measurePositiveNegativeValue, minMaxValue);
 
 		TimeAggregation baseTimeAggregation = timeAggregation;
-		if (!measurePositiveNegativeValue.isEmpty())
+		if (!measurePositiveNegativeValue.isEmpty() || minMaxValue != "")
 			timeAggregation = TimeAggregation.NONE;
+
+		String whereOutliers = "";
+		if (minMaxValue != "") {
+			String[] outliers = minMaxValue.split("_");
+			if (!outliers[0].equals("null"))
+				whereOutliers += " AND value >= " + outliers[0];
+			if (!outliers[1].equals("null"))
+				whereOutliers += " AND value <= " + outliers[1];
+		}
 
 		String queryMeasureAggr = (measureAggregation != null) ? measureAggregation.toString().toUpperCase() : "";
 
@@ -254,7 +263,7 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 				orderBy = " ORDER BY time_bucket('1 minutes', time)";
 				break;
 			case NONE:
-				whereTime = "(time >= '" + df.format(start) + "' AND time <= '" + df.format(end) + "')";
+				whereTime = "(time >= '" + df.format(start) + "' AND time <= '" + df.format(end) + "')" + whereOutliers;
 				break;
 			default:
 				break;
@@ -265,7 +274,7 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 				Calendar cal = Calendar.getInstance();
 				cal.setTime(start);
 				cal.add(Calendar.HOUR_OF_DAY, -1);
-				whereTime = "(time >= '" + df.format(start) + "' AND time <= '" + df.format(end) + "')";
+				whereTime = "(time >= '" + df.format(start) + "' AND time <= '" + df.format(end) + "')" + whereOutliers;
 				switch (timeAggregation) {
 				case YEAR:
 					select = "drain_id, " + queryMeasureAggr + "(value)" + ((coeff != 1.00) ? " * " + coeff : "") + ", timescaledb_experimental.time_bucket_ng('1 years', time)";
@@ -308,7 +317,7 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 
 			List<Pair<Date, Date>> slots = new ArrayList<Pair<Date, Date>>();
 			Map<String, DoubleSummaryStatistics[]> stats = new HashMap<String, DoubleSummaryStatistics[]>();
-			if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
+			if ((!measurePositiveNegativeValue.isEmpty() || !minMaxValue.isEmpty()) && (baseTimeAggregation != TimeAggregation.NONE)) {
 				Calendar startCal = Calendar.getInstance();
 				startCal.setTime(start);
 				Calendar endCal = Calendar.getInstance();
@@ -325,34 +334,82 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 							arrayObjects[i] = ((Double) arrayObjects[i]).intValue();
 						}
 					}
-					String drainMeasuresKey = String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (measurePositiveNegativeValue.isEmpty() ? "" : ("_" + measurePositiveNegativeValue));
+					String drainMeasuresKey = String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (measurePositiveNegativeValue.isEmpty() ? "" : ("_" + measurePositiveNegativeValue)) + (minMaxValue.isEmpty() ? "" : minMaxValue);
 					// Only positive/negative case
-					if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
-						if (!stats.containsKey(drainMeasuresKey)) {
-							DoubleSummaryStatistics[] newStats = new DoubleSummaryStatistics[slots.size()];
-							stats.put(drainMeasuresKey,newStats);
-						}
-						for (Integer k = 0; k < slots.size(); k++) {
-							if (stats.get(drainMeasuresKey)[k] == null ) {
-								DoubleSummaryStatistics newStat = new DoubleSummaryStatistics();
-								stats.get(drainMeasuresKey)[k] = newStat;
+					if (!measurePositiveNegativeValue.isEmpty()) {
+						if ((baseTimeAggregation != TimeAggregation.NONE)) {
+							if (!stats.containsKey(drainMeasuresKey)) {
+								DoubleSummaryStatistics[] newStats = new DoubleSummaryStatistics[slots.size()];
+								stats.put(drainMeasuresKey, newStats);
 							}
-							Calendar time = Calendar.getInstance();
-							time.setTime(new Date(((Timestamp) arrayObjects[2]).getTime()));
-							if (time.getTime().equals(slots.get(k).getLeft()) || (time.getTime().after(slots.get(k).getLeft()) && time.getTime().before(slots.get(k).getRight()))) {
-								if ((Double) arrayObjects[1] != null) {
-									if (measurePositiveNegativeValue.equals("pos")) {
-										stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] < 0 ? 0 : (Double) arrayObjects[1]);
-									} else {
-										stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] > 0 ? 0 : (Double) arrayObjects[1]);
-									}
+							for (Integer k = 0; k < slots.size(); k++) {
+								if (stats.get(drainMeasuresKey)[k] == null) {
+									DoubleSummaryStatistics newStat = new DoubleSummaryStatistics();
+									stats.get(drainMeasuresKey)[k] = newStat;
 								}
-								break;
+								Calendar time = Calendar.getInstance();
+								time.setTime(new Date(((Timestamp) arrayObjects[2]).getTime()));
+								if (time.getTime().equals(slots.get(k).getLeft()) || (time.getTime().after(slots.get(k).getLeft()) && time.getTime().before(slots.get(k).getRight()))) {
+									if ((Double) arrayObjects[1] != null) {
+										if (measurePositiveNegativeValue.equals("pos")) {
+											stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] < 0 ? 0 : (Double) arrayObjects[1]);
+										} else {
+											stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1] > 0 ? 0 : (Double) arrayObjects[1]);
+										}
+									}
+									break;
+								}
+							}
+						} else {
+							Measure measure = new MeasureDouble();
+							measure.setValue(((measurePositiveNegativeValue.equals("pos") && ((Double) arrayObjects[1] < 0)) || (measurePositiveNegativeValue.equals("neg") && ((Double) arrayObjects[1] > 0))) ? 0 : (Double) arrayObjects[1]);
+							measure.setTime(timeAggregation.equals(TimeAggregation.ALL) ? start : (Timestamp) arrayObjects[2]);
+
+							if (drainMeasures.get(drainMeasuresKey) != null) {
+								drainMeasures.get(drainMeasuresKey).add(measure);
+							} else {
+								List<Measure> measures = new ArrayList<Measure>();
+								measures.add(measure);
+								drainMeasures.put(drainMeasuresKey, measures);
 							}
 						}
-					} else {
+					}
+					if (!minMaxValue.isEmpty()) {
+						if ((baseTimeAggregation != TimeAggregation.NONE)) {
+							if (!stats.containsKey(drainMeasuresKey)) {
+								DoubleSummaryStatistics[] newStats = new DoubleSummaryStatistics[slots.size()];
+								stats.put(drainMeasuresKey, newStats);
+							}
+							for (Integer k = 0; k < slots.size(); k++) {
+								if (stats.get(drainMeasuresKey)[k] == null) {
+									DoubleSummaryStatistics newStat = new DoubleSummaryStatistics();
+									stats.get(drainMeasuresKey)[k] = newStat;
+								}
+								Calendar time = Calendar.getInstance();
+								time.setTime(new Date(((Timestamp) arrayObjects[2]).getTime()));
+								if (time.getTime().equals(slots.get(k).getLeft()) || (time.getTime().after(slots.get(k).getLeft()) && time.getTime().before(slots.get(k).getRight()))) {
+									if ((Double) arrayObjects[1] != null)
+										stats.get(drainMeasuresKey)[k].accept((Double) arrayObjects[1]);
+									break;
+								}
+							}
+						} else {
+							Measure measure = new MeasureDouble();
+							measure.setValue((Double) arrayObjects[1]);
+							measure.setTime(timeAggregation.equals(TimeAggregation.ALL) ? start : (Timestamp) arrayObjects[2]);
+
+							if (drainMeasures.get(drainMeasuresKey) != null) {
+								drainMeasures.get(drainMeasuresKey).add(measure);
+							} else {
+								List<Measure> measures = new ArrayList<Measure>();
+								measures.add(measure);
+								drainMeasures.put(drainMeasuresKey, measures);
+							}
+						}
+					}
+					if (measurePositiveNegativeValue.isEmpty() && minMaxValue.isEmpty()) {
 						Measure measure = new MeasureDouble();
-						measure.setValue(((measurePositiveNegativeValue.equals("pos") && ((Double) arrayObjects[1] < 0)) || (measurePositiveNegativeValue.equals("neg") && ((Double) arrayObjects[1] > 0))) ? 0 : (Double) arrayObjects[1]);
+						measure.setValue((Double) arrayObjects[1]);
 						measure.setTime(timeAggregation.equals(TimeAggregation.ALL) ? start : (Timestamp) arrayObjects[2]);
 
 						if (drainMeasures.get(drainMeasuresKey) != null) {
@@ -368,7 +425,7 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 			results.close();
 			statelessSession.close();
 
-			if (!measurePositiveNegativeValue.isEmpty() && (baseTimeAggregation != TimeAggregation.NONE)) {
+			if ((!measurePositiveNegativeValue.isEmpty() || !minMaxValue.isEmpty()) && (baseTimeAggregation != TimeAggregation.NONE)) {
 				for (String drainKey : stats.keySet()) {
 					for (Integer k = 0; k < slots.size(); k++) {
 						Measure measure = new MeasureDouble();
@@ -540,12 +597,12 @@ public class MeasureDaoImpl extends BaseDaoImpl implements MeasureDao {
 				}
 				measure.setTime(calendar.getTime());
 
-				if (drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation) != null) {
-					drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation).add(measure);
+				if (drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (minMaxValue.isEmpty() ? "" : minMaxValue)) != null) {
+					drainMeasures.get(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (minMaxValue.isEmpty() ? "" : minMaxValue)).add(measure);
 				} else {
 					List<Measure> measures = new ArrayList<Measure>();
 					measures.add(measure);
-					drainMeasures.put(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation, measures);
+					drainMeasures.put(String.valueOf((Integer) arrayObjects[0]) + "_" + measureAggregation + (minMaxValue.isEmpty() ? "" : minMaxValue), measures);
 				}
 			}
 			results.close();

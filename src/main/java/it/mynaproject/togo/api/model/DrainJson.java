@@ -50,6 +50,12 @@ public class DrainJson {
 	@JsonProperty("client_default_drain")
 	private Boolean clientDefaultDrain;
 
+	@JsonProperty("min_value")
+	private Double minValue;
+
+	@JsonProperty("max_value")
+	private Double maxValue;
+
 	@JsonProperty("positive_negative_value")
 	private Boolean positiveNegativeValue;
 
@@ -127,6 +133,22 @@ public class DrainJson {
 		this.decimals = decimals;
 	}
 
+	public Double getMinValue() {
+		return minValue;
+	}
+
+	public void setMinValue(Double minValue) {
+		this.minValue = minValue;
+	}
+
+	public Double getMaxValue() {
+		return maxValue;
+	}
+
+	public void setMaxValue(Double maxValue) {
+		this.maxValue = maxValue;
+	}
+
 	public Boolean getClientDefaultDrain() {
 		return clientDefaultDrain;
 	}
@@ -194,6 +216,10 @@ public class DrainJson {
 		builder.append(decimals);
 		builder.append(", clientDefaultDrain=");
 		builder.append(clientDefaultDrain);
+		builder.append(", minValue=");
+		builder.append(minValue);
+		builder.append(", maxValue=");
+		builder.append(maxValue);
 		builder.append(", positiveNegativeValue=");
 		builder.append(positiveNegativeValue);
 		builder.append(", baseDrainId=");

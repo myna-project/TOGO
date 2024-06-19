@@ -53,6 +53,9 @@ public class User extends BaseDomain {
 	@Column
 	private String style;
 
+	@Column(name="dark_theme")
+	private Boolean darkTheme;
+
 	@Column
 	private String lang;
 
@@ -73,7 +76,7 @@ public class User extends BaseDomain {
 	@Column(name="default_end")
 	private Date defaultEnd;
 
-	@Column(name="drain_tree_depth",nullable=false)
+	@Column(name="drain_tree_depth")
 	private String drainTreeDepth;
 
 	public String getUsername() {
@@ -138,6 +141,14 @@ public class User extends BaseDomain {
 
 	public void setStyle(String style) {
 		this.style = style;
+	}
+
+	public Boolean getDarkTheme() {
+		return darkTheme;
+	}
+
+	public void setDarkTheme(Boolean darkTheme) {
+		this.darkTheme = darkTheme;
 	}
 
 	public String getLang() {
@@ -222,6 +233,7 @@ public class User extends BaseDomain {
 		if (input.getAvatar() != null)
 			this.setAvatar(Base64.getDecoder().decode(input.getAvatar()));
 		this.setStyle(input.getStyle());
+		this.setDarkTheme(input.getDarkTheme());
 		this.setEmail(input.getEmail());
 		this.setLang(input.getLang());
 		this.setEnabled((input.getEnabled() != null) ? (input.getEnabled () ? 1 : 0) : 0);

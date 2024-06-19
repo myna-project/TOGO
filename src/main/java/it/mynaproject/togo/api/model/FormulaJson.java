@@ -43,6 +43,9 @@ public class FormulaJson {
 
 	private List<String> legends;
 
+	@JsonProperty("exclude_outliers")
+	private List<Boolean> excludeOutliers;
+
 	public Integer getId() {
 		return id;
 	}
@@ -113,6 +116,14 @@ public class FormulaJson {
 
 	public void setLegends(List<String> legends) {
 		this.legends = legends;
+	}
+
+	public List<Boolean> getExcludeOutliers() {
+		return excludeOutliers;
+	}
+
+	public void setExcludeOutliers(List<Boolean> excludeOutliers) {
+		this.excludeOutliers = excludeOutliers;
 	}
 
 	@Override

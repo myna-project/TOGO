@@ -12,6 +12,8 @@ import it.mynaproject.togo.api.domain.Operation;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DashboardWidgetDetailJson {
 
+	private Integer id;
+
 	@JsonProperty("index_id")
 	private Integer indexId;
 
@@ -30,6 +32,17 @@ public class DashboardWidgetDetailJson {
 
 	@JsonProperty("positive_negative_value")
 	private String positiveNegativeValue;
+
+	@JsonProperty("exclude_outliers")
+	private boolean excludeOutliers;
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
 
 	public Integer getIndexId() {
 		return indexId;
@@ -87,6 +100,14 @@ public class DashboardWidgetDetailJson {
 		this.positiveNegativeValue = positiveNegativeValue;
 	}
 
+	public Boolean getExcludeOutliers() {
+		return excludeOutliers;
+	}
+
+	public void setExcludeOutliers(boolean excludeOutliers) {
+		this.excludeOutliers = excludeOutliers;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -104,6 +125,8 @@ public class DashboardWidgetDetailJson {
 		builder.append(operator);
 		builder.append(", positiveNegativeValue=");
 		builder.append(positiveNegativeValue);
+		builder.append(", excludeOutliers=");
+		builder.append(excludeOutliers);
 		builder.append("]");
 		return builder.toString();
 	}

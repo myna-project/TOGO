@@ -50,6 +50,9 @@ public class UserJson {
 
 	private String style;
 
+	@JsonProperty("dark_theme")
+	private Boolean darkTheme;
+
 	private String lang;
 
 	@JsonProperty("role_ids")
@@ -153,6 +156,14 @@ public class UserJson {
 		this.style = style;
 	}
 
+	public Boolean getDarkTheme() {
+		return darkTheme;
+	}
+
+	public void setDarkTheme(Boolean darkTheme) {
+		this.darkTheme = darkTheme;
+	}
+
 	public String getLang() {
 		return lang;
 	}
@@ -230,6 +241,8 @@ public class UserJson {
 		builder.append(enabled);
 		builder.append(", style=");
 		builder.append(style);
+		builder.append(", darkTheme=");
+		builder.append(darkTheme);
 		builder.append(", email=");
 		builder.append(email);
 		builder.append(", lang=");

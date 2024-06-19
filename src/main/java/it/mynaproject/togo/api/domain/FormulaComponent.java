@@ -44,6 +44,9 @@ public class FormulaComponent extends BaseDomain implements Comparable<FormulaCo
 	@Column(name="positive_negative_value")
 	private String positiveNegativeValue;
 
+	@Column(name="exclude_outliers")
+	private boolean excludeOutliers;
+
 	public Drain getDrain() {
 		return drain;
 	}
@@ -90,6 +93,14 @@ public class FormulaComponent extends BaseDomain implements Comparable<FormulaCo
 
 	public void setFormula(Formula formula) {
 		this.formula = formula;
+	}
+
+	public boolean getExcludeOutliers() {
+		return excludeOutliers;
+	}
+
+	public void setExcludeOutliers(boolean excludeOutliers) {
+		this.excludeOutliers = excludeOutliers;
 	}
 
 	@Override

@@ -101,7 +101,7 @@ public class DrainServiceImpl implements DrainService {
 		Drain diffDrain = (input.getDiffDrainId() != null) ? this.getDrain(input.getDiffDrainId(), isAdmin, username) : null;
 
 		Drain drain = new Drain();
-		drain.populateDrainFromInput(input, baseDrain, diffDrain, f, true);
+		drain.populateDrainFromInput(input, baseDrain,diffDrain, f, true);
 
 		this.persist(drain);
 

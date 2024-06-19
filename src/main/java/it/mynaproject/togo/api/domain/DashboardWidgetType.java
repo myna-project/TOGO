@@ -6,5 +6,6 @@ public enum DashboardWidgetType {
 	PIE,
 	GAUGE,
 	HEATMAP,
+	STACKED,
 	ALERT
 }

@@ -53,6 +53,9 @@ public class DashboardWidgetDetail extends BaseDomain {
 	@Column(name="positive_negative_value")
 	private String positiveNegativeValue;
 
+	@Column(name="exclude_outliers")
+	private boolean excludeOutliers;
+
 	public DashboardWidget getDashboardWidget() {
 		return dashboardWidget;
 	}
@@ -117,6 +120,14 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.positiveNegativeValue = positiveNegativeValue;
 	}
 
+	public boolean getExcludeOutliers() {
+		return excludeOutliers;
+	}
+
+	public void setExcludeOutliers(boolean excludeOutliers) {
+		this.excludeOutliers = excludeOutliers;
+	}
+
 	public void populateDashboardWidgetDetailFromInput(DashboardWidgetDetailJson input, Drain drain, Formula formula, Index index, DrainControl control) {
 
 		this.setIndex(index);
@@ -126,6 +137,7 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.setAggregation(input.getAggregation());
 		this.setOperator(input.getOperator());
 		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
+		this.setExcludeOutliers(input.getExcludeOutliers());
 	}
 
 	public void duplicateDashboardWidgetDetail(DashboardWidgetDetail input) {
@@ -137,6 +149,7 @@ public class DashboardWidgetDetail extends BaseDomain {
 		this.setAggregation(input.getAggregation());
 		this.setOperator(input.getOperator());
 		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
+		this.setExcludeOutliers(input.getExcludeOutliers());
 	}
 
 	@Override
@@ -158,6 +171,8 @@ public class DashboardWidgetDetail extends BaseDomain {
 		builder.append(operator);
 		builder.append(", positiveNegativeValue=");
 		builder.append(positiveNegativeValue);
+		builder.append(", excludeOutliers=");
+		builder.append(excludeOutliers);
 		builder.append("]");
 		return builder.toString();
 	}

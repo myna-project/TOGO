@@ -54,6 +54,12 @@ public class Drain extends BaseDomain {
 	@Column(name="client_default_drain")
 	private Boolean clientDefaultDrain;
 
+	@Column(name="min_value")
+	private Double minValue;
+
+	@Column(name="max_value")
+	private Double maxValue;
+
 	@Column(name="positive_negative_value")
 	private Boolean positiveNegativeValue;
 
@@ -135,6 +141,22 @@ public class Drain extends BaseDomain {
 		this.clientDefaultDrain = clientDefaultDrain;
 	}
 
+	public Double getMinValue() {
+		return minValue;
+	}
+
+	public void setMinValue(Double minValue) {
+		this.minValue = minValue;
+	}
+
+	public Double getMaxValue() {
+		return maxValue;
+	}
+
+	public void setMaxValue(Double maxValue) {
+		this.maxValue = maxValue;
+	}
+
 	public Boolean getPositiveNegativeValue() {
 		return positiveNegativeValue;
 	}
@@ -187,6 +209,8 @@ public class Drain extends BaseDomain {
 		this.setDecimals(input.getDecimals());
 		this.setType(input.getType());
 		this.setClientDefaultDrain((input.getClientDefaultDrain() != null) ? input.getClientDefaultDrain() : false);
+		this.setMaxValue(input.getMaxValue());
+		this.setMinValue(input.getMinValue());
 		this.setPositiveNegativeValue(input.getPositiveNegativeValue());
 		this.setBaseDrain(baseDrain);
 		this.setCoefficient(input.getCoefficient());
@@ -212,6 +236,10 @@ public class Drain extends BaseDomain {
 		builder.append(decimals);
 		builder.append(", clientDefaultDrain=");
 		builder.append(clientDefaultDrain);
+		builder.append(", minValue=");
+		builder.append(minValue);
+		builder.append(", maxValue=");
+		builder.append(maxValue);
 		builder.append(", positiveNegativeValue=");
 		builder.append(positiveNegativeValue);
 		builder.append(", baseDrain=");

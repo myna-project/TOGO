@@ -32,14 +32,14 @@ import it.mynaproject.togo.api.dao.impl.InvoiceItemkWhDaoImpl;
 import it.mynaproject.togo.api.domain.Client;
 import it.mynaproject.togo.api.domain.Drain;
 import it.mynaproject.togo.api.domain.Feed;
-import it.mynaproject.togo.api.domain.Formula;
-import it.mynaproject.togo.api.domain.FormulaComponent;
 import it.mynaproject.togo.api.domain.InvoiceItemkWh;
 import it.mynaproject.togo.api.domain.Measure;
 import it.mynaproject.togo.api.domain.MeasureAggregation;
 import it.mynaproject.togo.api.domain.MeasureType;
 import it.mynaproject.togo.api.domain.Operation;
 import it.mynaproject.togo.api.domain.TimeAggregation;
+import it.mynaproject.togo.api.domain.Formula;
+import it.mynaproject.togo.api.domain.FormulaComponent;
 import it.mynaproject.togo.api.domain.impl.MeasureBitfield;
 import it.mynaproject.togo.api.domain.impl.MeasureDouble;
 import it.mynaproject.togo.api.domain.impl.MeasureString;
@@ -55,9 +55,9 @@ import it.mynaproject.togo.api.model.PairDrainMeasuresJson.Value;
 import it.mynaproject.togo.api.service.ClientService;
 import it.mynaproject.togo.api.service.DrainService;
 import it.mynaproject.togo.api.service.FeedService;
-import it.mynaproject.togo.api.service.FormulaService;
 import it.mynaproject.togo.api.service.MeasureService;
 import it.mynaproject.togo.api.service.OrgService;
+import it.mynaproject.togo.api.service.FormulaService;
 import it.mynaproject.togo.api.util.DateUtil;
 import it.mynaproject.togo.api.util.Pair;
 
@@ -209,7 +209,7 @@ public class MeasureServiceImpl implements MeasureService {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username) {
+	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username) {
 
 		Date end_date = DateUtil.extractEndDate(end);
 		Date start_date = DateUtil.extractStartDate(start, end_date, Constants.MEASURE_HISTORY_TIME_WINDOW);
@@ -219,9 +219,13 @@ public class MeasureServiceImpl implements MeasureService {
 		List<Operation> allDrainOperations = new ArrayList<Operation>();
 		List<MeasureAggregation> allMeasureAggregations = new ArrayList<MeasureAggregation>();
 		List<String> allPositiveNegativeValues = new ArrayList<String>();
+		List<Boolean> allExcludeOutliers = new ArrayList<Boolean>();
 
 		if ((positiveNegativeValues == null) || (positiveNegativeValues.size() == 0))
 			positiveNegativeValues = new ArrayList<String>();
+
+		if ((excludeOutliers == null) || (excludeOutliers.size() == 0))
+			excludeOutliers = new ArrayList<Boolean>();
 
 		Integer k = 0;
 		for (String drainId : drainIds) {
@@ -233,17 +237,19 @@ public class MeasureServiceImpl implements MeasureService {
 					allDrainOperations.add(fc.getOperator());
 					allMeasureAggregations.add(fc.getAggregation());
 					allPositiveNegativeValues.add((fc.getPositiveNegativeValue() == null) ? "" : fc.getPositiveNegativeValue());
+					allExcludeOutliers.add(fc.getExcludeOutliers());
 				}
 			} else if (drainId.substring(0, 1).equals("d")) {
 				allDrainIds.add(String.valueOf(Integer.parseInt(drainId.substring(2, drainId.length()))));
 				allDrainOperations.add(drainOperations.get(k));
 				allMeasureAggregations.add(measureAggregations.get(k));
 				allPositiveNegativeValues.add((positiveNegativeValues.size() == 0) ? "" : ((positiveNegativeValues.get(k) == null) ? "" : positiveNegativeValues.get(k)));
+				allExcludeOutliers.add((excludeOutliers.size() == 0) ? false : excludeOutliers.get(k) == null ? false : excludeOutliers.get(k));
 				k++;
 			}
 		}
 
-		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), allMeasureAggregations, allPositiveNegativeValues, false, isAdmin, username);
+		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String,List<String>>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), allMeasureAggregations, allPositiveNegativeValues, allExcludeOutliers, false, isAdmin, username);
 
 		this.executeGroupedQueries(drainMeasures, queries, start_date, end_date, timeAggregation);
 
@@ -263,7 +269,7 @@ public class MeasureServiceImpl implements MeasureService {
 					formulaDrainOperations.add(o);
 					if (o.equals(Operation.SEMICOLON))
 						semicolonFormulaOperation.add(o);
-					Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + allMeasureAggregations.get(i + j) + (allPositiveNegativeValues.get(i + j).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i + j)))));
+					Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + allMeasureAggregations.get(i + j) + (allPositiveNegativeValues.get(i + j).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i + j))) + (allExcludeOutliers.get(i) ? d.getMinValue() + "_" + d.getMaxValue() : "")));
 					formulaJsonArray.add(JsonUtil.pairDrainMeasureToPairDrainMeasureJson(measures, timeAggregation, start_date, end_date));
 				}
 				calculateOperations(formulaDrainOperations, isAdmin, username, formulaJsonArray, jsonArray);
@@ -274,7 +280,7 @@ public class MeasureServiceImpl implements MeasureService {
 			if (drainId.substring(0, 1).equals("d")) {
 				Drain d = this.drainService.getDrain(Integer.parseInt(drainId.substring(2, drainId.length())), isAdmin, username);
 
-				Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + allMeasureAggregations.get(i) + (allPositiveNegativeValues.get(i).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i)))));
+				Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + allMeasureAggregations.get(i) + (allPositiveNegativeValues.get(i).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i))) + (allExcludeOutliers.get(i) ? d.getMinValue() + "_" + d.getMaxValue() : "")));
 
 				jsonArray.add(JsonUtil.pairDrainMeasureToPairDrainMeasureJson(measures, timeAggregation, start_date, end_date));
 			}
@@ -288,12 +294,13 @@ public class MeasureServiceImpl implements MeasureService {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<PairDrainMeasuresJson> getCosts(Integer drainCostId, String[] drainIds, ArrayList<Operation> drainOperations, MeasureAggregation measureAggregation, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username) {
+	public List<PairDrainMeasuresJson> getCosts(Integer drainCostId, String[] drainIds, ArrayList<Operation> drainOperations, MeasureAggregation measureAggregation, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username) {
 
 		List<String> allDrainIds = new ArrayList<String>();
 		List<Operation> allDrainOperations = new ArrayList<Operation>();
 		List<MeasureAggregation> allMeasureAggregations = new ArrayList<MeasureAggregation>();
 		List<String> allPositiveNegativeValues = new ArrayList<String>();
+		List<Boolean> allExcludeOutliers = new ArrayList<Boolean>();
 
 		Integer drainCount = 0;
 		for (String drainId : drainIds) {
@@ -304,13 +311,15 @@ public class MeasureServiceImpl implements MeasureService {
 					allDrainIds.add(String.valueOf(fc.getDrain().getId()));
 					allDrainOperations.add(fc.getOperator());
 					allMeasureAggregations.add(measureAggregation);
-					allPositiveNegativeValues.add("");
+					allPositiveNegativeValues.add(fc.getPositiveNegativeValue() == null ? "" : fc.getPositiveNegativeValue());
+					allExcludeOutliers.add(fc.getExcludeOutliers());
 				}
 			} else if (drainId.substring(0, 1).equals("d")) {
 				allDrainIds.add(String.valueOf(Integer.parseInt(drainId.substring(2, drainId.length()))));
 				allDrainOperations.add(drainOperations.get(drainCount));
 				allMeasureAggregations.add(measureAggregation);
-				allPositiveNegativeValues.add("");
+				allPositiveNegativeValues.add((positiveNegativeValues.size() == 0) ? "" : ((positiveNegativeValues.get(drainCount) == null) ? "" : positiveNegativeValues.get(drainCount)));
+				allExcludeOutliers.add(excludeOutliers.get(drainCount));
 				drainCount++;
 			}
 		}
@@ -345,7 +354,7 @@ public class MeasureServiceImpl implements MeasureService {
 		Map<String, List<Measure>> costs = new HashMap<String, List<Measure>>();
 		List<String> costsDrainIds = new ArrayList<String>();
 		costsDrainIds.add(String.valueOf(drainCostId));
-		costs = this.measureDao.getMultipleMeasures(costs, costsDrainIds, Double.valueOf("1.00"), this.getMeasureTypeFromDrain(dCost), Boolean.FALSE, startCost.getTime(), end_date, TimeAggregation.HOUR, MeasureAggregation.AVG, "");
+		costs = this.measureDao.getMultipleMeasures(costs, costsDrainIds, "", Double.valueOf("1.00"), this.getMeasureTypeFromDrain(dCost), Boolean.FALSE, startCost.getTime(), end_date, TimeAggregation.HOUR, MeasureAggregation.AVG, "");
 		HashMap<String, Double> costsMap = new HashMap<String, Double>();
 		for (String costDrain : costs.keySet()) {
 			for (Measure m : costs.get(costDrain)) {
@@ -364,7 +373,7 @@ public class MeasureServiceImpl implements MeasureService {
 		}
 
 		Map<String, List<Measure>> drainMeasures = new HashMap<String, List<Measure>>();
-		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), new ArrayList<MeasureAggregation>(Collections.nCopies(allDrainIds.toArray(new String[0]).length, MeasureAggregation.SUM)), allPositiveNegativeValues, true, isAdmin, username);
+		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), new ArrayList<MeasureAggregation>(Collections.nCopies(allDrainIds.toArray(new String[0]).length, MeasureAggregation.SUM)), allPositiveNegativeValues, allExcludeOutliers, true, isAdmin, username);
 
 		this.executeGroupedQueries(drainMeasures, queries, startMonthCal.getTime(), end_date, timeAggregation.equals(TimeAggregation.QHOUR) ? TimeAggregation.QHOUR : TimeAggregation.HOUR);
 
@@ -385,7 +394,7 @@ public class MeasureServiceImpl implements MeasureService {
 					formulaDrainOperations.add(o);
 					if (o.equals(Operation.SEMICOLON))
 						semicolonFormulaOperation.add(o);
-					Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + MeasureAggregation.SUM));
+					Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + MeasureAggregation.SUM + (allPositiveNegativeValues.get(i).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i))) + (allExcludeOutliers.get(i) ? d.getMinValue() + "_" + d.getMaxValue() : "")));
 					formulaJsonArray.add(JsonUtil.pairDrainMeasureToPairDrainMeasureJson(measures, timeAggregation.equals(TimeAggregation.QHOUR) ? TimeAggregation.QHOUR : TimeAggregation.HOUR, start_date, end_date));
 				}
 				calculateOperations(formulaDrainOperations, isAdmin, username, formulaJsonArray, jsonArray);
@@ -396,7 +405,7 @@ public class MeasureServiceImpl implements MeasureService {
 			if (drainSId.substring(0, 1).equals("d")) {
 				Drain d = this.drainService.getDrain(Integer.parseInt(drainSId.substring(2, drainSId.length())), isAdmin, username);
 
-				Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + MeasureAggregation.SUM));
+				Pair<Drain, List<Measure>> measures = new Pair(d, drainMeasures.get(String.valueOf(d.getId()) + "_" + MeasureAggregation.SUM + (allPositiveNegativeValues.get(i).isEmpty() ? "" : ("_" + allPositiveNegativeValues.get(i))) + (allExcludeOutliers.get(i) ? d.getMinValue() + "_" + d.getMaxValue() : "")));
 
 				jsonArray.add(JsonUtil.pairDrainMeasureToPairDrainMeasureJson(measures, timeAggregation.equals(TimeAggregation.QHOUR) ? TimeAggregation.QHOUR : TimeAggregation.HOUR, start_date, end_date));
 			}
@@ -782,9 +791,9 @@ public class MeasureServiceImpl implements MeasureService {
 		}
 	}
 
-	private Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>> groupQueries(Map<String, List<Measure>> drainMeasures, String[] drainIds, List<MeasureAggregation> measureAggregations, List<String> positiveNegativeValues,boolean costs, boolean isAdmin, String username) {
+	private Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> groupQueries(Map<String, List<Measure>> drainMeasures, String[] drainIds, List<MeasureAggregation> measureAggregations, List<String> positiveNegativeValues, List<Boolean> excludeOutlierValues, boolean costs, boolean isAdmin, String username) {
 
-		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>> queries = new HashMap<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>>();
+		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries = new HashMap<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>>();
 		Integer i = 0;
 		for (String drainId : drainIds) {
 			Drain d = this.drainService.getDrain(Integer.parseInt(drainId), isAdmin, username);
@@ -792,43 +801,54 @@ public class MeasureServiceImpl implements MeasureService {
 			Double coeff = !costs ? 1.00 : (d.getUnitOfMeasure().toLowerCase().equals("wh") ? 0.001 : (d.getUnitOfMeasure().toLowerCase().equals("mwh") ? 1000.00 : 1.00));
 
 			List<String> newDrainIds = new ArrayList<String>();
-			Map<String, List<String>> newPositiveNegativeValues = new HashMap<String, List<String>>();
-			Map<Double, Map<String, List<String>>> newCoeff = new HashMap<Double, Map<String, List<String>>>();
-			Map<String, Map<Double, Map<String,List<String>>>> newType = new HashMap<String, Map<Double, Map<String,List<String>>>>();
-			Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>> newAggr = new HashMap<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>();
-			if (!drainMeasures.containsKey(String.valueOf(d.getId()) + "_" + measureAggregations.get(i) + (!positiveNegativeValues.get(i).isEmpty() ? ("_" + positiveNegativeValues.get(i)) :  ""))) {
-				drainMeasures.put(String.valueOf(d.getId()) + "_" + measureAggregations.get(i) + (!positiveNegativeValues.get(i).isEmpty() ?  ("_" + positiveNegativeValues.get(i)) :  ""), new ArrayList<Measure>());
+			Map<String, List<String>> newMinMaxValues = new HashMap<String, List<String>>();
+			Map<String, Map<String, List<String>>> newPositiveNegativeValues = new HashMap<String, Map<String, List<String>>>();
+			Map<Double, Map<String, Map<String, List<String>>>> newCoeff = new HashMap<Double, Map<String, Map<String, List<String>>>>();
+			Map<String, Map<Double, Map<String, Map<String, List<String>>>>> newType = new HashMap<String, Map<Double, Map<String, Map<String, List<String>>>>>();
+			Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>> newAggr = new HashMap<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>();
+			if (!drainMeasures.containsKey(String.valueOf(d.getId()) + "_" + measureAggregations.get(i) + (!positiveNegativeValues.get(i).isEmpty() ? ("_" + positiveNegativeValues.get(i)) :  "") + (excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : ""))) {
+				drainMeasures.put(String.valueOf(d.getId()) + "_" + measureAggregations.get(i) + (!positiveNegativeValues.get(i).isEmpty() ?  ("_" + positiveNegativeValues.get(i)) :  "") + (excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : ""), new ArrayList<Measure>());
 				if (queries.containsKey(this.getMeasureTypeFromDrain(d))) {
 					if (queries.get(this.getMeasureTypeFromDrain(d)).containsKey(measureAggregations.get(i))) {
 						if (queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).containsKey(type)) {
 							if (queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).containsKey(coeff)) {
-								if (queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).containsKey(positiveNegativeValues.get(i)))
-									queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).get(positiveNegativeValues.get(i)).add(drainId);
-								else {
+								if (queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).containsKey(positiveNegativeValues.get(i))) {
+									if (queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).get(positiveNegativeValues.get(i)).containsKey(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : ""))
+										queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).get(positiveNegativeValues.get(i)).get(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "").add(drainId);
+									else {
+										newDrainIds.add(drainId);
+										queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).get(positiveNegativeValues.get(i)).put(excludeOutlierValues.get(i) ? d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+									}
+								} else {
 									newDrainIds.add(drainId);
-									queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).put(positiveNegativeValues.get(i), newDrainIds);
+									newMinMaxValues.put(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+									queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).get(coeff).put(positiveNegativeValues.get(i), newMinMaxValues);
 								}
 							} else {
 								newDrainIds.add(drainId);
-								newPositiveNegativeValues.put(positiveNegativeValues.get(i), newDrainIds);
+								newMinMaxValues.put(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+								newPositiveNegativeValues.put(positiveNegativeValues.get(i), newMinMaxValues);
 								queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).get(type).put(coeff, newPositiveNegativeValues);
 							}
 						} else {
 							newDrainIds.add(drainId);
-							newPositiveNegativeValues.put(positiveNegativeValues.get(i), newDrainIds);
+							newMinMaxValues.put(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+							newPositiveNegativeValues.put(positiveNegativeValues.get(i), newMinMaxValues);
 							newCoeff.put(coeff, newPositiveNegativeValues);
 							queries.get(this.getMeasureTypeFromDrain(d)).get(measureAggregations.get(i)).put(type, newCoeff);
 						}
 					} else {
 						newDrainIds.add(drainId);
-						newPositiveNegativeValues.put(positiveNegativeValues.get(i), newDrainIds);
+						newMinMaxValues.put(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+						newPositiveNegativeValues.put(positiveNegativeValues.get(i), newMinMaxValues);
 						newCoeff.put(coeff, newPositiveNegativeValues);
 						newType.put(type, newCoeff);
 						queries.get(this.getMeasureTypeFromDrain(d)).put(measureAggregations.get(i), newType);
 					}
 				} else {
 					newDrainIds.add(drainId);
-					newPositiveNegativeValues.put(positiveNegativeValues.get(i), newDrainIds);
+					newMinMaxValues.put(excludeOutlierValues.get(i) ? "" + d.getMinValue() + "_" + d.getMaxValue() : "", newDrainIds);
+					newPositiveNegativeValues.put(positiveNegativeValues.get(i), newMinMaxValues);
 					newCoeff.put(coeff, newPositiveNegativeValues);
 					newType.put(type, newCoeff);
 					newAggr.put(measureAggregations.get(i), newType);
@@ -841,18 +861,20 @@ public class MeasureServiceImpl implements MeasureService {
 		return queries;
 	}
 
-	private void executeGroupedQueries(Map<String, List<Measure>> drainMeasures, Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>>> queries, Date start_date, Date end_date, TimeAggregation timeAggr) {
+	private void executeGroupedQueries(Map<String, List<Measure>> drainMeasures, Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries, Date start_date, Date end_date, TimeAggregation timeAggr) {
 
 		for (MeasureType measureType : queries.keySet()) {
-			Map<MeasureAggregation, Map<String, Map<Double, Map<String,List<String>>>>> aggregations = queries.get(measureType);
+			Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>> aggregations = queries.get(measureType);
 			for (MeasureAggregation aggr : aggregations.keySet()) {
-				Map<String, Map<Double, Map<String,List<String>>>> types = aggregations.get(aggr);
+				Map<String, Map<Double, Map<String, Map<String, List<String>>>>> types = aggregations.get(aggr);
 				for (String type : types.keySet()) {
-					Map<Double, Map<String,List<String>>> coeffs = types.get(type);
+					Map<Double, Map<String, Map<String, List<String>>>> coeffs = types.get(type);
 					for (Double coeff : coeffs.keySet()) {
-						Map<String,List<String>> positiveNegativeValues = coeffs.get(coeff);
+						Map<String, Map<String, List<String>>> positiveNegativeValues = coeffs.get(coeff);
 						for (String positiveNegativeValue : positiveNegativeValues.keySet()) {
-							drainMeasures = this.measureDao.getMultipleMeasures(drainMeasures, positiveNegativeValues.get(positiveNegativeValue), coeff, measureType, type.equals("inc"), start_date, end_date, timeAggr, aggr, positiveNegativeValue);
+							Map<String, List<String>> minMaxValues = positiveNegativeValues.get(positiveNegativeValue);
+							for (String minMaxValue : minMaxValues.keySet())
+								drainMeasures = this.measureDao.getMultipleMeasures(drainMeasures, minMaxValues.get(minMaxValue),minMaxValue, coeff, measureType, type.equals("inc"), start_date, end_date, timeAggr, aggr, positiveNegativeValue);
 						}
 					}
 				}

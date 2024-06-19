@@ -31,6 +31,6 @@ public interface MeasureDao {
 	public void delete(Measure measure);
 	public void deleteMultiple(List<Measure> measures);
 	public List<Measure> getMeasures(Drain d, MeasureType measureType, Date start, Date end);
-	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue);
+	public Map<String, List<Measure>> getMultipleMeasures(Map<String, List<Measure>> drainMeasures, List<String> drainIds, String minMaxValue, Double coeff, MeasureType measureType, Boolean inc, Date start, Date end, TimeAggregation timeAggregation, MeasureAggregation measureAggregation, String measurePositiveNegativeValue);
 	public void createSlotsStats(TimeAggregation timeAggregation, List<Pair<Date, Date>> slots, Date start_date, Date end_date, Calendar startCal);
 }
