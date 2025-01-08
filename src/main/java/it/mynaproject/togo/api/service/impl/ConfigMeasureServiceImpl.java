@@ -99,6 +99,7 @@ public class ConfigMeasureServiceImpl implements ConfigMeasureService {
 						drain.setName(newConf.getDrainName());
 						drain.setUnitOfMeasure(newConf.getUnitOfMeasure());
 						drain.setMeasureType(newConf.getMeasureType());
+						drain.setPositiveNegativeValue(false);
 						this.drainService.update(drain);
 
 						newDrain = false;
@@ -143,6 +144,7 @@ public class ConfigMeasureServiceImpl implements ConfigMeasureService {
 				d.setUnitOfMeasure(newConf.getUnitOfMeasure());
 				d.setMeasureType(newConf.getMeasureType());
 				d.setClientDefaultDrain(false);
+				d.setPositiveNegativeValue(false);
 
 				this.drainService.persist(d);
 

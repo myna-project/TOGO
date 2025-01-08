@@ -461,7 +461,7 @@ INSERT INTO time_slot_detail (time_slot_id, day_of_week, start_time, end_time) V
 
 -- Table of invoice's items applied on kWh --
 CREATE TABLE invoice_item_kwh (
-    id integer NOT NULL,
+    id serial NOT NULL,
     vendor_id integer NOT NULL,
     drain_id integer NOT NULL,
     year integer NOT NULL,
