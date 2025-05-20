@@ -36,7 +36,7 @@ public interface MeasureService {
 	public void updateMeasuresFromJsonList(List<CsvMeasuresJson> csvMeasuresJsonList, Boolean isAdmin, String username);
 	public void delete(Measure measure);
 	public void deleteMeasures(Integer clientId, String deviceId, Date start, Date end, Boolean isAdmin, String username);
-	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username);
+	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean forceDiff, boolean isAdmin, String username);
 	public List<PairDrainMeasuresJson> getCosts(Integer drainCostId, String[] drainIds, ArrayList<Operation> drainOperations, MeasureAggregation measureAggregation, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username);
 	public Boolean checkMeasuresForDrain(Drain drain, Date start, Date end);
 }

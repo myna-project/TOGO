@@ -138,12 +138,13 @@ public class MeasureController {
 			@RequestParam(value= "excludeOutliers[]") ArrayList<Boolean> excludeOutliers,
 			@RequestParam(value="start") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
 			@RequestParam(value="end") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
-			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation
+			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation,
+			@RequestParam(value="forceDiff", required = false, defaultValue = "false") boolean forceDiff
 			) {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, excludeOutliers, start, end, timeAggregation, true, user.getUsername());
+		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, excludeOutliers, start, end, timeAggregation, forceDiff, true, user.getUsername());
 	}
 
 	@ApiResponses({
@@ -269,12 +270,13 @@ public class MeasureController {
 			@RequestParam(value="excludeOutliers[]") ArrayList<Boolean> excludeOutliers,
 			@RequestParam(value="start") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date start,
 			@RequestParam(value="end") @DateTimeFormat(pattern = Constants.DATIME_FORMAT) Date end,
-			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation
+			@RequestParam(value="timeAggregation", defaultValue = "MINUTE") TimeAggregation timeAggregation,
+			@RequestParam(value="forceDiff", required = false, defaultValue = "false") boolean forceDiff
 			) {
 
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, excludeOutliers, start, end, timeAggregation, false, user.getUsername());
+		return measureService.getMeasures(drainIds, drainOperations, measureAggregations, positiveNegativeValues, excludeOutliers, start, end, timeAggregation, forceDiff, false, user.getUsername());
 	}
 
 	@ApiResponses({

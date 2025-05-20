@@ -222,7 +222,7 @@ public class DrainControlTaskInitializer implements InitializingBean, Disposable
 									i++;
 								}
 							}
-							List<PairDrainMeasuresJson> lastHourMeasuresJson = measureService.getMeasures(drainIds, drainOperations, measureAggregations, null, null, start.getTime(), end.getTime(), TimeAggregation.ALL, Boolean.TRUE, "");
+							List<PairDrainMeasuresJson> lastHourMeasuresJson = measureService.getMeasures(drainIds, drainOperations, measureAggregations, null, null, start.getTime(), end.getTime(), TimeAggregation.ALL, false, true, "");
 							if (lastHourMeasuresJson.size() > 0) {
 								PairDrainMeasuresJson drainMeasuresJson = lastHourMeasuresJson.get(0);
 								if (drainMeasuresJson.getMeasures().size() > 0)

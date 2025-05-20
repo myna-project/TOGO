@@ -209,7 +209,7 @@ public class MeasureServiceImpl implements MeasureService {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean isAdmin, String username) {
+	public List<PairDrainMeasuresJson> getMeasures(String[] drainIds, ArrayList<Operation> drainOperations, ArrayList<MeasureAggregation> measureAggregations, ArrayList<String> positiveNegativeValues, ArrayList<Boolean> excludeOutliers, Date start, Date end, TimeAggregation timeAggregation, boolean forceDiff, boolean isAdmin, String username) {
 
 		Date end_date = DateUtil.extractEndDate(end);
 		Date start_date = DateUtil.extractStartDate(start, end_date, Constants.MEASURE_HISTORY_TIME_WINDOW);
@@ -251,7 +251,7 @@ public class MeasureServiceImpl implements MeasureService {
 
 		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String,List<String>>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), allMeasureAggregations, allPositiveNegativeValues, allExcludeOutliers, false, isAdmin, username);
 
-		this.executeGroupedQueries(drainMeasures, queries, start_date, end_date, timeAggregation);
+		this.executeGroupedQueries(drainMeasures, queries, start_date, end_date, timeAggregation, forceDiff);
 
 		List<PairDrainMeasuresJson> jsonArray = new ArrayList<PairDrainMeasuresJson>();
 		List<PairDrainMeasuresJson> jsonFinalArray = new ArrayList<PairDrainMeasuresJson>();
@@ -375,7 +375,7 @@ public class MeasureServiceImpl implements MeasureService {
 		Map<String, List<Measure>> drainMeasures = new HashMap<String, List<Measure>>();
 		Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries = this.groupQueries(drainMeasures, allDrainIds.toArray(new String[0]), new ArrayList<MeasureAggregation>(Collections.nCopies(allDrainIds.toArray(new String[0]).length, MeasureAggregation.SUM)), allPositiveNegativeValues, allExcludeOutliers, true, isAdmin, username);
 
-		this.executeGroupedQueries(drainMeasures, queries, startMonthCal.getTime(), end_date, timeAggregation.equals(TimeAggregation.QHOUR) ? TimeAggregation.QHOUR : TimeAggregation.HOUR);
+		this.executeGroupedQueries(drainMeasures, queries, startMonthCal.getTime(), end_date, timeAggregation.equals(TimeAggregation.QHOUR) ? TimeAggregation.QHOUR : TimeAggregation.HOUR, false);
 
 		List<PairDrainMeasuresJson> jsonArray = new ArrayList<PairDrainMeasuresJson>();
 		List<PairDrainMeasuresJson> jsonFinalArray = new ArrayList<PairDrainMeasuresJson>();
@@ -861,7 +861,7 @@ public class MeasureServiceImpl implements MeasureService {
 		return queries;
 	}
 
-	private void executeGroupedQueries(Map<String, List<Measure>> drainMeasures, Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries, Date start_date, Date end_date, TimeAggregation timeAggr) {
+	private void executeGroupedQueries(Map<String, List<Measure>> drainMeasures, Map<MeasureType, Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>>> queries, Date start_date, Date end_date, TimeAggregation timeAggr, Boolean forceDiff) {
 
 		for (MeasureType measureType : queries.keySet()) {
 			Map<MeasureAggregation, Map<String, Map<Double, Map<String, Map<String, List<String>>>>>> aggregations = queries.get(measureType);
@@ -874,7 +874,7 @@ public class MeasureServiceImpl implements MeasureService {
 						for (String positiveNegativeValue : positiveNegativeValues.keySet()) {
 							Map<String, List<String>> minMaxValues = positiveNegativeValues.get(positiveNegativeValue);
 							for (String minMaxValue : minMaxValues.keySet())
-								drainMeasures = this.measureDao.getMultipleMeasures(drainMeasures, minMaxValues.get(minMaxValue),minMaxValue, coeff, measureType, type.equals("inc"), start_date, end_date, timeAggr, aggr, positiveNegativeValue);
+								drainMeasures = this.measureDao.getMultipleMeasures(drainMeasures, minMaxValues.get(minMaxValue),minMaxValue, coeff, measureType, forceDiff || type.equals("inc"), start_date, end_date, timeAggr, aggr, positiveNegativeValue);
 						}
 					}
 				}
